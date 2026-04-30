@@ -19,10 +19,36 @@ RSpec.describe Weather::GeocodingClient do
           "countrycodes" => "us",
           "format" => "json",
           "limit" => "1",
-          "q" => "Cupertino, CA"
+          "city" => "Cupertino",
+          "state" => "CA"
         )
         expect(headers["Accept"]).to eq("application/json")
         expect(headers["User-Agent"]).to include("rails-weather-app")
+      end
+    end
+
+    it "uses a structured city and state query when there is no comma" do
+      response = instance_double(Net::HTTPResponse, code: "200", body: geocoding_response_body)
+      http_client = class_double(Net::HTTP, get_response: response)
+
+      described_class.new(http_client: http_client).call("Sanford FL")
+
+      expect(http_client).to have_received(:get_response) do |uri, _headers|
+        expect(Rack::Utils.parse_query(uri.query)).to include(
+          "city" => "Sanford",
+          "state" => "FL"
+        )
+      end
+    end
+
+    it "uses the unstructured query for other location text" do
+      response = instance_double(Net::HTTPResponse, code: "200", body: geocoding_response_body)
+      http_client = class_double(Net::HTTP, get_response: response)
+
+      described_class.new(http_client: http_client).call("1 Apple Park Way, Cupertino, CA")
+
+      expect(http_client).to have_received(:get_response) do |uri, _headers|
+        expect(Rack::Utils.parse_query(uri.query)).to include("q" => "1 Apple Park Way, Cupertino, CA")
       end
     end
 

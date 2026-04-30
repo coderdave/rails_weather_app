@@ -10,6 +10,8 @@ module Weather
       "Accept" => "application/json",
       "User-Agent" => "rails-weather-app coding-assessment"
     }.freeze
+    CITY_STATE_QUERY_PATTERN =
+      /\A(?<city>[A-Za-z][A-Za-z .'-]*?)(?:,\s*|\s+)(?<state>[A-Za-z]{2})\z/
 
     class Error < StandardError; end
     class LocationNotFound < Error; end
@@ -42,17 +44,32 @@ module Weather
     end
 
     def search_uri(location_query)
-      query_params = {
-        addressdetails: 1,
-        countrycodes: "us",
-        format: "json",
-        limit: 1,
-        q: location_query.to_s
-      }
+      query_params = base_query_params.merge(location_query_params(location_query))
 
       uri = ENDPOINT.dup
       uri.query = URI.encode_www_form(query_params)
       uri
+    end
+
+    def base_query_params
+      {
+        addressdetails: 1,
+        countrycodes: "us",
+        format: "json",
+        limit: 1
+      }
+    end
+
+    def location_query_params(location_query)
+      city_state_params(location_query) || { q: location_query.to_s }
+    end
+
+    def city_state_params(location_query)
+      match = location_query.to_s.match(CITY_STATE_QUERY_PATTERN)
+      return unless match
+
+      # structured city/state searches prevent abbreviations like FL from being treated as fuzzy text
+      { city: match[:city], state: match[:state] }
     end
 
     def build_result(response_body)
