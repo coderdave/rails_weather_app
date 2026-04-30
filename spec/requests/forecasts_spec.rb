@@ -14,6 +14,17 @@ RSpec.describe "Forecast search", type: :request do
           cache_key: resolved_cache_key_for(normalized_query)
         )
       end
+
+      allow(Weather::ForecastClient).to receive(:call) do |resolved_location|
+        Weather::Forecast.new(
+          location: resolved_location.display_name,
+          current_temperature: 72,
+          high_temperature: 78,
+          low_temperature: 63,
+          conditions: "Partly cloudy",
+          cached: false
+        )
+      end
     end
 
     it "renders the mock search UI" do
@@ -51,7 +62,7 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).not_to include('class="search-button" disabled="disabled"')
     end
 
-    it "renders the fake forecast returned by the lookup boundary" do
+    it "renders the forecast returned by the lookup boundary" do
       get root_path, params: { location: "Cupertino, CA" }
 
       expect(response).to have_http_status(:ok)
@@ -63,7 +74,7 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include("Partly cloudy")
     end
 
-    it "renders the fake forecast for a zip code search" do
+    it "renders the forecast for a zip code search" do
       get root_path, params: { location: "95014" }
 
       expect(response).to have_http_status(:ok)
@@ -71,7 +82,7 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include("95014")
     end
 
-    it "renders the fake forecast for a full address without commas" do
+    it "renders the forecast for a full address without commas" do
       get root_path, params: { location: "6068 Saint Julian Dr. Sanford FL 32771" }
 
       expect(response).to have_http_status(:ok)
@@ -97,6 +108,16 @@ RSpec.describe "Forecast search", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("We couldn&#39;t find that location.")
+      expect(response.body).not_to include("Here's your forecast...")
+    end
+
+    it "shows a service error when weather data cannot be loaded" do
+      allow(Weather::ForecastLookup).to receive(:call).and_raise(Weather::NwsPointsClient::Error)
+
+      get root_path, params: { location: "32771" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Weather data is temporarily unavailable.")
       expect(response.body).not_to include("Here's your forecast...")
     end
 

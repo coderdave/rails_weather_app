@@ -21,7 +21,7 @@ module Weather
     end
 
     def call(resolved_location)
-      response = http_client.get_response(points_uri(resolved_location), REQUEST_HEADERS)
+      response = fetch_response(points_uri(resolved_location))
 
       raise Error, "nws points request failed" unless response.code.to_i == 200
 
@@ -32,8 +32,21 @@ module Weather
 
     attr_reader :http_client
 
+    def fetch_response(uri)
+      http_client.get_response(uri, REQUEST_HEADERS)
+    rescue StandardError
+      raise Error, "nws points request failed"
+    end
+
     def points_uri(resolved_location)
-      URI("#{ENDPOINT}/#{resolved_location.latitude},#{resolved_location.longitude}")
+      URI("#{ENDPOINT}/#{coordinate_for(resolved_location.latitude)},#{coordinate_for(resolved_location.longitude)}")
+    rescue ArgumentError, TypeError
+      raise Error, "nws points coordinates are invalid"
+    end
+
+    def coordinate_for(value)
+      # nws redirects high precision coordinates, so round before the request
+      format("%.4f", Float(value))
     end
 
     def build_result(response_body)

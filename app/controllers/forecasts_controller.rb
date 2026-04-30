@@ -19,5 +19,8 @@ class ForecastsController < ApplicationController
   rescue Weather::GeocodingClient::LocationNotFound
     @forecast = nil
     @location_error = "We couldn't find that location. Try a ZIP code, city and state, or full street address."
+  rescue Weather::GeocodingClient::Error, Weather::NwsPointsClient::Error, Weather::NwsForecastClient::Error
+    @forecast = nil
+    @location_error = "Weather data is temporarily unavailable. Please try again."
   end
 end

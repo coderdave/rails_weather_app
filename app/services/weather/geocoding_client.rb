@@ -24,7 +24,7 @@ module Weather
 
     def call(location_query)
       location_query = LocationQuery.new(location_query)
-      response = http_client.get_response(search_uri(location_query), REQUEST_HEADERS)
+      response = fetch_response(search_uri(location_query))
 
       raise Error, "geocoding request failed" unless response.code.to_i == 200
 
@@ -34,6 +34,12 @@ module Weather
     private
 
     attr_reader :http_client
+
+    def fetch_response(uri)
+      http_client.get_response(uri, REQUEST_HEADERS)
+    rescue StandardError
+      raise Error, "geocoding request failed"
+    end
 
     def search_uri(location_query)
       query_params = {

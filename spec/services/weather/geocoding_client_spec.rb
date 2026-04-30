@@ -44,6 +44,16 @@ RSpec.describe Weather::GeocodingClient do
       end.to raise_error(Weather::GeocodingClient::Error, "geocoding request failed")
     end
 
+    it "raises a geocoding error when the request cannot be completed" do
+      http_client = class_double(Net::HTTP)
+
+      allow(http_client).to receive(:get_response).and_raise(SocketError)
+
+      expect do
+        described_class.new(http_client: http_client).call("Cupertino, CA")
+      end.to raise_error(Weather::GeocodingClient::Error, "geocoding request failed")
+    end
+
     it "raises a geocoding error when the response cannot be parsed" do
       response = instance_double(Net::HTTPResponse, code: "200", body: "not json")
       http_client = class_double(Net::HTTP, get_response: response)

@@ -20,7 +20,7 @@ module Weather
     end
 
     def call(forecast_url)
-      response = http_client.get_response(URI(forecast_url), REQUEST_HEADERS)
+      response = fetch_response(URI(forecast_url))
 
       raise Error, "nws forecast request failed" unless response.code.to_i == 200
 
@@ -32,6 +32,12 @@ module Weather
     private
 
     attr_reader :http_client
+
+    def fetch_response(uri)
+      http_client.get_response(uri, REQUEST_HEADERS)
+    rescue StandardError
+      raise Error, "nws forecast request failed"
+    end
 
     def build_result(response_body)
       periods = JSON.parse(response_body).fetch("properties").fetch("periods")

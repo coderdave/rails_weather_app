@@ -29,6 +29,16 @@ RSpec.describe Weather::NwsForecastClient do
       end.to raise_error(Weather::NwsForecastClient::Error, "nws forecast request failed")
     end
 
+    it "raises an error when the forecast request cannot be completed" do
+      http_client = class_double(Net::HTTP)
+
+      allow(http_client).to receive(:get_response).and_raise(SocketError)
+
+      expect do
+        described_class.new(http_client: http_client).call("https://api.weather.gov/gridpoints/MTR/85,105/forecast")
+      end.to raise_error(Weather::NwsForecastClient::Error, "nws forecast request failed")
+    end
+
     it "raises an error when the forecast response cannot be parsed" do
       response = instance_double(Net::HTTPResponse, code: "200", body: "not json")
       http_client = class_double(Net::HTTP, get_response: response)
