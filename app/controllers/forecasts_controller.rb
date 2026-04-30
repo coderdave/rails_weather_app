@@ -4,9 +4,8 @@ class ForecastsController < ApplicationController
   def index
     @location_query = params[:location].to_s.strip
     @minimum_location_length = MINIMUM_LOCATION_LENGTH
-    # a 5-character guard keeps the mock UI aligned with the shortest valid
-    # assessment input, a ZIP code, while deeper address validation remains in
-    # the service layer when the real forecast lookup is connected
+    # five characters allows zip code searches while blocking empty or obviously incomplete submissions
     @search_disabled = @location_query.length < @minimum_location_length
+    @forecast = Weather::ForecastLookup.call(@location_query) unless @search_disabled
   end
 end

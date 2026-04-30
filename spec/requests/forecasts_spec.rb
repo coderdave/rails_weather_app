@@ -10,11 +10,10 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include('placeholder="Search for a location"')
       expect(response.body).to include(">Search<")
       expect(response.body).to include("disabled")
-      expect(response.body).to include("Here's your forecast...")
-      expect(response.body).to include("hidden")
+      expect(response.body).not_to include("Here's your forecast...")
     end
 
-    it "renders a form wired for validated mock searches" do
+    it "renders a form wired for validated searches" do
       get root_path
 
       expect(response.body).to include('action="/"')
@@ -22,6 +21,7 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include('name="location"')
       expect(response.body).to include('type="search"')
       expect(response.body).to include('data-search-form-minimum-length-value="5"')
+      expect(response.body).to include('data-search-form-target="form"')
       expect(response.body).to include('input-&gt;search-form#handleInput')
       expect(response.body).to include('submit-&gt;search-form#submit')
       expect(response.body).to include('keydown.enter-&gt;search-form#submit')
@@ -35,7 +35,21 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).not_to include('class="search-button" disabled="disabled"')
     end
 
+    it "renders the fake forecast returned by the lookup boundary" do
+      get root_path, params: { location: "Cupertino, CA" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Here's your forecast...")
+      expect(response.body).to include("Cupertino, CA")
+      expect(response.body).to include("72&deg;F")
+      expect(response.body).to include("78&deg;F")
+      expect(response.body).to include("63&deg;F")
+      expect(response.body).to include("Partly cloudy")
+    end
+
     it "keeps the search button disabled when the location query is too short" do
+      expect(Weather::ForecastLookup).not_to receive(:call)
+
       get root_path, params: { location: "1234" }
 
       expect(response).to have_http_status(:ok)

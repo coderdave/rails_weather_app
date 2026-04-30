@@ -95,10 +95,32 @@ h1 {
   color: #666666;
 }
 
-.forecast-placeholder {
+.forecast-result {
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid #dddddd;
+}
+
+.forecast-location {
+  font-weight: 700;
+}
+
+.forecast-details {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.forecast-details dt,
+.cache-status {
+  color: #666666;
+}
+
+.forecast-details dd {
+  margin: 4px 0 0;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .visually-hidden {
@@ -134,5 +156,9 @@ h1 {
 
   .search-button {
     width: 100%;
+  }
+
+  .forecast-details {
+    grid-template-columns: 1fr 1fr;
   }
 }
