@@ -2,7 +2,11 @@ require "rails_helper"
 
 RSpec.describe "Forecast search", type: :request do
   describe "GET /" do
+    let(:cache) { ActiveSupport::Cache::MemoryStore.new }
+
     before do
+      allow(Rails).to receive(:cache).and_return(cache)
+
       allow(Weather::LocationResolver).to receive(:call) do |location_query|
         normalized_query = Weather::LocationQuery.new(location_query)
 
@@ -80,6 +84,19 @@ RSpec.describe "Forecast search", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Here's your forecast...")
       expect(response.body).to include("95014")
+    end
+
+    it "shows when a repeated search is loaded from cache" do
+      get root_path, params: { location: "95014" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Loaded from cache")
+
+      get root_path, params: { location: "95014" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Loaded from cache")
+      expect(Weather::ForecastClient).to have_received(:call).once
     end
 
     it "renders the forecast for a full address without commas" do
