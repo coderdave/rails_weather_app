@@ -7,9 +7,10 @@ module Weather
       new.call(location_query)
     end
 
-    def initialize(cache: Rails.cache, location_resolver: LocationResolver)
+    def initialize(cache: Rails.cache, location_resolver: LocationResolver, forecast_client: ForecastClient)
       @cache = cache
       @location_resolver = location_resolver
+      @forecast_client = forecast_client
     end
 
     def call(location_query)
@@ -19,15 +20,7 @@ module Weather
       cached_forecast = cache.read(resolved_location.cache_key)
       return mark_cached(cached_forecast) if cached_forecast
 
-      # this fake response lets the controller and view integrate with a stable backend boundary
-      forecast = Forecast.new(
-        location: resolved_location.display_name,
-        current_temperature: 72,
-        high_temperature: 78,
-        low_temperature: 63,
-        conditions: "Partly cloudy",
-        cached: false
-      )
+      forecast = forecast_client.call(resolved_location)
 
       cache.write(resolved_location.cache_key, forecast, expires_in: CACHE_EXPIRATION)
       forecast
@@ -35,7 +28,7 @@ module Weather
 
     private
 
-    attr_reader :cache, :location_resolver
+    attr_reader :cache, :location_resolver, :forecast_client
 
     # return a new forecast so the stored fresh value is not mutated after a cache hit
     def mark_cached(forecast)
