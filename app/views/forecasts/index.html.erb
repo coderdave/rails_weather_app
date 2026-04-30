@@ -1,10 +1,10 @@
 <% content_for :title, "Rails Weather App" %>
 
 <main>
-  <section class="weather-panel" aria-labelledby="weather-app-title" data-controller="search-form" data-search-form-minimum-length-value="<%= @minimum_location_length %>">
+  <section class="weather-panel" aria-labelledby="weather-app-title" data-controller="forecast-search" data-forecast-search-minimum-length-value="<%= @minimum_location_length %>">
     <h1 id="weather-app-title">Rails Weather App</h1>
 
-    <%= form_with url: root_path, method: :get, local: true, class: "search-form", data: { search_form_target: "form", action: "submit->search-form#submit" } do |form| %>
+    <%= form_with url: root_path, method: :get, local: true, class: "search-form", data: { forecast_search_target: "searchForm", action: "submit->forecast-search#submit" } do |form| %>
       <%= form.label :location, "Location", class: "visually-hidden" %>
       <%= form.search_field :location,
         value: @location_query,
@@ -13,20 +13,20 @@
         autocomplete: "street-address",
         autofocus: true,
         data: {
-          search_form_target: "input",
-          action: "input->search-form#handleInput keydown.enter->search-form#submit"
+          forecast_search_target: "locationInput",
+          action: "input->forecast-search#handleInput keydown.enter->forecast-search#submit"
         } %>
 
-      <%= form.button type: "submit", class: "search-button", disabled: @search_disabled, data: { search_form_target: "button" } do %>
-        <span class="spinner" hidden data-search-form-target="spinner" aria-hidden="true"></span>
-        <span data-search-form-target="buttonText">Search</span>
+      <%= form.button type: "submit", class: "search-button", disabled: @search_disabled, data: { forecast_search_target: "searchButton" } do %>
+        <span class="spinner" hidden data-forecast-search-target="loadingSpinner" aria-hidden="true"></span>
+        <span data-forecast-search-target="searchButtonText">Search</span>
       <% end %>
     <% end %>
 
-    <p class="loading-status" aria-live="polite" data-search-form-target="status"></p>
+    <p class="loading-status" aria-live="polite" data-forecast-search-target="loadingStatus"></p>
 
     <% if @forecast %>
-      <section class="forecast-result" aria-live="polite" data-search-form-target="result">
+      <section class="forecast-result" aria-live="polite" data-forecast-search-target="forecastResult">
         <h2>Here's your forecast...</h2>
         <p class="forecast-location"><%= @forecast.location %></p>
 

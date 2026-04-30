@@ -20,11 +20,13 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include('method="get"')
       expect(response.body).to include('name="location"')
       expect(response.body).to include('type="search"')
-      expect(response.body).to include('data-search-form-minimum-length-value="5"')
-      expect(response.body).to include('data-search-form-target="form"')
-      expect(response.body).to include('input-&gt;search-form#handleInput')
-      expect(response.body).to include('submit-&gt;search-form#submit')
-      expect(response.body).to include('keydown.enter-&gt;search-form#submit')
+      expect(response.body).to include('data-forecast-search-minimum-length-value="5"')
+      expect(response.body).to include('data-forecast-search-target="searchForm"')
+      expect(response.body).to include('data-forecast-search-target="locationInput"')
+      expect(response.body).to include('data-forecast-search-target="searchButton"')
+      expect(response.body).to include('input-&gt;forecast-search#handleInput')
+      expect(response.body).to include('submit-&gt;forecast-search#submit')
+      expect(response.body).to include('keydown.enter-&gt;forecast-search#submit')
     end
 
     it "preserves a location query when one is present" do
