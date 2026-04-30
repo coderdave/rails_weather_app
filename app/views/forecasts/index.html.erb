@@ -1,0 +1,32 @@
+<% content_for :title, "Rails Weather App" %>
+
+<main>
+  <section class="weather-panel" aria-labelledby="weather-app-title" data-controller="search-form" data-search-form-minimum-length-value="<%= @minimum_location_length %>">
+    <h1 id="weather-app-title">Rails Weather App</h1>
+
+    <%= form_with url: root_path, method: :get, local: true, class: "search-form", data: { action: "submit->search-form#submit" } do |form| %>
+      <%= form.label :location, "Location", class: "visually-hidden" %>
+      <%= form.search_field :location,
+        value: @location_query,
+        placeholder: "Search for a location",
+        class: "location-input",
+        autocomplete: "street-address",
+        autofocus: true,
+        data: {
+          search_form_target: "input",
+          action: "input->search-form#handleInput keydown.enter->search-form#submit"
+        } %>
+
+      <%= form.button type: "submit", class: "search-button", disabled: @search_disabled, data: { search_form_target: "button" } do %>
+        <span class="spinner" hidden data-search-form-target="spinner" aria-hidden="true"></span>
+        <span data-search-form-target="buttonText">Search</span>
+      <% end %>
+    <% end %>
+
+    <p class="loading-status" aria-live="polite" data-search-form-target="status"></p>
+
+    <section class="forecast-placeholder" hidden aria-live="polite" data-search-form-target="result">
+      <h2>Here's your forecast...</h2>
+    </section>
+  </section>
+</main>

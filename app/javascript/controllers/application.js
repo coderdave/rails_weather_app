@@ -1,9 +1,11 @@
-import { Application } from "@hotwired/stimulus"
+/** @format */
 
-const application = Application.start()
+import { Application } from "@hotwired/stimulus";
 
-// Configure Stimulus development experience
-application.debug = false
-window.Stimulus   = application
+const application = Application.start();
 
-export { application }
+// configure Stimulus development experience
+application.debug = false;
+window.Stimulus = application;
+
+export { application };
