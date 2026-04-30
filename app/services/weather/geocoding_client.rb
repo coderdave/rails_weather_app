@@ -3,7 +3,7 @@ require "net/http"
 
 module Weather
   class GeocodingClient
-    # nominatim resolves addresses and city/state searches without requiring an api key for this assessment
+    # nws requires coordinates, and nominatim gives us a no-key geocoder for zip, city, and address searches
     ENDPOINT = URI("https://nominatim.openstreetmap.org/search").freeze
     # nominatim asks clients to identify themselves instead of using a generic ruby user agent
     REQUEST_HEADERS = {
