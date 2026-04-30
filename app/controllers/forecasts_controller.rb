@@ -16,5 +16,8 @@ class ForecastsController < ApplicationController
     else
       @location_error = "Enter a ZIP code, city and state, or full street address."
     end
+  rescue Weather::GeocodingClient::LocationNotFound
+    @forecast = nil
+    @location_error = "We couldn't find that location. Try a ZIP code, city and state, or full street address."
   end
 end

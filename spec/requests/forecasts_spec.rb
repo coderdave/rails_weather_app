@@ -2,6 +2,20 @@ require "rails_helper"
 
 RSpec.describe "Forecast search", type: :request do
   describe "GET /" do
+    before do
+      allow(Weather::LocationResolver).to receive(:call) do |location_query|
+        normalized_query = Weather::LocationQuery.new(location_query)
+
+        Weather::ResolvedLocation.new(
+          display_name: normalized_query.to_s,
+          zip_code: normalized_query.zip_code,
+          latitude: 37.3229,
+          longitude: -122.0322,
+          cache_key: resolved_cache_key_for(normalized_query)
+        )
+      end
+    end
+
     it "renders the mock search UI" do
       get root_path
 
@@ -76,6 +90,16 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).not_to include("Here's your forecast...")
     end
 
+    it "shows a validation error when a recognized location cannot be geocoded" do
+      allow(Weather::ForecastLookup).to receive(:call).and_raise(Weather::GeocodingClient::LocationNotFound)
+
+      get root_path, params: { location: "Missing, CA" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("We couldn&#39;t find that location.")
+      expect(response.body).not_to include("Here's your forecast...")
+    end
+
     it "keeps the search button disabled when the location query is too short" do
       expect(Weather::ForecastLookup).not_to receive(:call)
 
@@ -84,6 +108,14 @@ RSpec.describe "Forecast search", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('value="1234"')
       expect(response.body).to include('class="search-button" disabled="disabled"')
+    end
+
+    def resolved_cache_key_for(location_query)
+      if location_query.zip_code
+        "forecast:zip:#{location_query.zip_code}"
+      else
+        "forecast:location:#{location_query.to_s.parameterize}"
+      end
     end
   end
 end
