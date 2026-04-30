@@ -52,6 +52,50 @@ RSpec.describe Weather::GeocodingClient do
       end
     end
 
+    it "falls back to city and state when a no-comma street address with zip is not found" do
+      requested_queries = []
+      empty_response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
+      success_response = instance_double(Net::HTTPResponse, code: "200", body: sanford_response_body)
+      responses = [ empty_response, success_response ]
+      http_client = class_double(Net::HTTP)
+
+      allow(http_client).to receive(:get_response) do |uri, _headers|
+        requested_queries << Rack::Utils.parse_query(uri.query)
+        responses.shift
+      end
+
+      geocoding_result = described_class.new(http_client: http_client).call("6068 Saint Julian Dr. Sanford FL 32771")
+
+      expect(geocoding_result.display_name).to eq("Sanford, Seminole County, Florida, United States")
+      expect(requested_queries.first).to include("q" => "6068 Saint Julian Dr. Sanford FL 32771")
+      expect(requested_queries.second).to include(
+        "city" => "Sanford",
+        "state" => "FL"
+      )
+    end
+
+    it "falls back to city and state when a no-comma street address without zip is not found" do
+      requested_queries = []
+      empty_response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
+      success_response = instance_double(Net::HTTPResponse, code: "200", body: sanford_response_body)
+      responses = [ empty_response, success_response ]
+      http_client = class_double(Net::HTTP)
+
+      allow(http_client).to receive(:get_response) do |uri, _headers|
+        requested_queries << Rack::Utils.parse_query(uri.query)
+        responses.shift
+      end
+
+      geocoding_result = described_class.new(http_client: http_client).call("6068 Saint Julian Dr. Sanford FL")
+
+      expect(geocoding_result.display_name).to eq("Sanford, Seminole County, Florida, United States")
+      expect(requested_queries.first).to include("q" => "6068 Saint Julian Dr. Sanford FL")
+      expect(requested_queries.second).to include(
+        "city" => "Sanford",
+        "state" => "FL"
+      )
+    end
+
     it "raises a location not found error when geocoding returns no matches" do
       response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
       http_client = class_double(Net::HTTP, get_response: response)
@@ -110,6 +154,20 @@ RSpec.describe Weather::GeocodingClient do
           "lon" => "-122.0322",
           "address" => {
             "postcode" => "95014-2083"
+          }
+        }
+      ].to_json
+    end
+
+    def sanford_response_body
+      [
+        {
+          "display_name" => "Sanford, Seminole County, Florida, United States",
+          "lat" => "28.8117345",
+          "lon" => "-81.2680223",
+          "address" => {
+            "city" => "Sanford",
+            "state" => "Florida"
           }
         }
       ].to_json

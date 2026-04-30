@@ -10,6 +10,10 @@ module Weather
       "Accept" => "application/json",
       "User-Agent" => "rails-weather-app coding-assessment"
     }.freeze
+    STREET_SUFFIXES = %w[
+      aly alley ave avenue blvd boulevard cir circle ct court dr drive hwy highway ln lane pkwy parkway pl place rd road
+      st street ter terrace trl trail way
+    ].freeze
     CITY_STATE_QUERY_PATTERN =
       /\A(?<city>[A-Za-z][A-Za-z .'-]*?)(?:,\s*|\s+)(?<state>[A-Za-z]{2})\z/
 
@@ -26,11 +30,18 @@ module Weather
 
     def call(location_query)
       location_query = LocationQuery.new(location_query)
-      response = fetch_response(search_uri(location_query))
 
-      raise Error, "geocoding request failed" unless response.code.to_i == 200
+      search_uris(location_query).each do |uri|
+        response = fetch_response(uri)
 
-      build_result(response.body)
+        raise Error, "geocoding request failed" unless response.code.to_i == 200
+
+        return build_result(response.body)
+      rescue LocationNotFound
+        next
+      end
+
+      raise LocationNotFound, "location was not found"
     end
 
     private
@@ -43,11 +54,17 @@ module Weather
       raise Error, "geocoding request failed"
     end
 
-    def search_uri(location_query)
-      query_params = base_query_params.merge(location_query_params(location_query))
+    def search_uris(location_query)
+      location_query_params(location_query).map do |query_params|
+        search_uri(query_params)
+      end
+    end
+
+    def search_uri(query_params)
+      full_query_params = base_query_params.merge(query_params)
 
       uri = ENDPOINT.dup
-      uri.query = URI.encode_www_form(query_params)
+      uri.query = URI.encode_www_form(full_query_params)
       uri
     end
 
@@ -61,6 +78,14 @@ module Weather
     end
 
     def location_query_params(location_query)
+      [
+        primary_location_query_params(location_query),
+        address_city_state_params(location_query),
+        postal_code_params(location_query)
+      ].compact.uniq
+    end
+
+    def primary_location_query_params(location_query)
       city_state_params(location_query) || { q: location_query.to_s }
     end
 
@@ -70,6 +95,29 @@ module Weather
 
       # structured city/state searches prevent abbreviations like FL from being treated as fuzzy text
       { city: match[:city], state: match[:state] }
+    end
+
+    def address_city_state_params(location_query)
+      tokens = location_query.to_s.split
+      tokens.pop if tokens.last.to_s.match?(/\A\d{5}(?:-\d{4})?\z/)
+
+      state = tokens.pop
+      return unless state.to_s.match?(/\A[A-Za-z]{2}\z/)
+
+      street_suffix_index = tokens.rindex { |token| STREET_SUFFIXES.include?(token.downcase.delete(".")) }
+      return unless street_suffix_index
+
+      city_tokens = tokens[(street_suffix_index + 1)..]
+      return if city_tokens.blank?
+
+      # if a street address is not found exactly, fall back to the city/state so a forecast can still be shown
+      { city: city_tokens.join(" "), state: state }
+    end
+
+    def postal_code_params(location_query)
+      return unless location_query.zip_code
+
+      { postalcode: location_query.zip_code }
     end
 
     def build_result(response_body)
