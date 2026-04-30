@@ -31,6 +31,14 @@ RSpec.describe Weather::LocationQuery do
     expect(query.zip_code).to eq("95014")
   end
 
+  it "recognizes a city and state search without a comma" do
+    query = described_class.new("Sanford FL")
+
+    expect(query).to be_city_state
+    expect(query).to be_recognized
+    expect(query.zip_code).to be_nil
+  end
+
   it "recognizes a street address with city and state" do
     query = described_class.new("1 Apple Park Way, Cupertino, CA")
 
@@ -45,6 +53,14 @@ RSpec.describe Weather::LocationQuery do
     expect(query).to be_street_address
     expect(query).to be_recognized
     expect(query.zip_code).to eq("95014")
+  end
+
+  it "recognizes a street address without commas" do
+    query = described_class.new("6068 Saint Julian Dr. Sanford FL 32771")
+
+    expect(query).to be_street_address
+    expect(query).to be_recognized
+    expect(query.zip_code).to eq("32771")
   end
 
   it "does not recognize incomplete location text" do

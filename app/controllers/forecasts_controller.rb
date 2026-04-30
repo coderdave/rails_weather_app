@@ -6,6 +6,15 @@ class ForecastsController < ApplicationController
     @minimum_location_length = MINIMUM_LOCATION_LENGTH
     # five characters allows zip code searches while blocking empty or obviously incomplete submissions
     @search_disabled = @location_query.length < @minimum_location_length
-    @forecast = Weather::ForecastLookup.call(@location_query) unless @search_disabled
+    return if @search_disabled
+
+    location_query = Weather::LocationQuery.new(@location_query)
+    @location_query = location_query.to_s
+
+    if location_query.recognized?
+      @forecast = Weather::ForecastLookup.call(location_query)
+    else
+      @location_error = "Enter a ZIP code, city and state, or full street address."
+    end
   end
 end

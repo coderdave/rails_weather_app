@@ -95,6 +95,12 @@ h1 {
   color: #666666;
 }
 
+.location-error {
+  margin: 16px 0 0;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
 .forecast-result {
   margin-top: 24px;
   padding-top: 24px;

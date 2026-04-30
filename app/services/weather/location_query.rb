@@ -2,6 +2,8 @@ module Weather
   class LocationQuery
     ZIP_CODE_PATTERN = /(?<!\d)(\d{5})(?:-\d{4})?(?!\d)/
     ZIP_CODE_ONLY_PATTERN = /\A\d{5}(?:-\d{4})?\z/
+    CITY_STATE_WITHOUT_COMMA_PATTERN = /\A[A-Za-z][A-Za-z .'-]*\s+[A-Za-z]{2}(?:\s+\d{5}(?:-\d{4})?)?\z/
+    STREET_ADDRESS_WITHOUT_COMMA_PATTERN = /\A\d+\s+.+\s+[A-Za-z]{2}(?:\s+\d{5}(?:-\d{4})?)?\z/
 
     attr_reader :normalized_query
 
@@ -16,14 +18,13 @@ module Weather
     def city_state?
       return false if zip_code?
 
-      components.length == 2 && state_component?(components.last)
+      comma_separated_city_state? || no_comma_city_state?
     end
 
     def street_address?
       return false if zip_code?
 
-      # street addresses should include at least street, city, and state components
-      components.length >= 3 && state_component?(components.last)
+      comma_separated_street_address? || no_comma_street_address?
     end
 
     def recognized?
@@ -46,6 +47,27 @@ module Weather
 
     def components
       @components ||= normalized_query.split(",").map(&:strip).reject(&:empty?)
+    end
+
+    def comma_separated_city_state?
+      components.length == 2 && state_component?(components.last)
+    end
+
+    def comma_separated_street_address?
+      # street addresses should include at least street, city, and state components
+      components.length >= 3 && state_component?(components.last)
+    end
+
+    def no_comma_city_state?
+      !contains_comma? && normalized_query.match?(CITY_STATE_WITHOUT_COMMA_PATTERN)
+    end
+
+    def no_comma_street_address?
+      !contains_comma? && normalized_query.match?(STREET_ADDRESS_WITHOUT_COMMA_PATTERN)
+    end
+
+    def contains_comma?
+      normalized_query.include?(",")
     end
 
     def state_component?(value)

@@ -25,6 +25,10 @@
 
     <p class="loading-status" aria-live="polite" data-forecast-search-target="loadingStatus"></p>
 
+    <% if @location_error %>
+      <p class="location-error" aria-live="polite" data-forecast-search-target="forecastResult"><%= @location_error %></p>
+    <% end %>
+
     <% if @forecast %>
       <section class="forecast-result" aria-live="polite" data-forecast-search-target="forecastResult">
         <h2>Here's your forecast...</h2>
