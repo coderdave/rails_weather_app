@@ -13,10 +13,14 @@ RSpec.describe Weather::ForecastLookup do
       expect(forecast).not_to be_cached
     end
 
-    it "uses the normalized location query in the fake response" do
-      forecast = described_class.new.call("  Cupertino,   CA  ")
+    it "uses the resolved display name in the fake response" do
+      resolved_location = Weather::ResolvedLocation.new(display_name: "Resolved Cupertino")
 
-      expect(forecast.location).to eq("Cupertino, CA")
+      allow(Weather::LocationResolver).to receive(:call).and_return(resolved_location)
+
+      forecast = described_class.new.call("Cupertino, CA")
+
+      expect(forecast.location).to eq("Resolved Cupertino")
     end
   end
 end
