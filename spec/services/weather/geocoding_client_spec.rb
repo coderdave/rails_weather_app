@@ -8,7 +8,7 @@ RSpec.describe Weather::GeocodingClient do
 
       geocoding_result = described_class.new(http_client: http_client).call("  Cupertino,   CA  ")
 
-      expect(geocoding_result.display_name).to eq("Cupertino, Santa Clara County, California, United States")
+      expect(geocoding_result.display_name).to eq("Cupertino, California 95014")
       expect(geocoding_result.zip_code).to eq("95014")
       expect(geocoding_result.latitude).to eq(37.3229)
       expect(geocoding_result.longitude).to eq(-122.0322)
@@ -67,7 +67,7 @@ RSpec.describe Weather::GeocodingClient do
       geocoding_result = described_class.new(http_client: http_client).call("123 Main St. Exampleville FL 12345")
 
       expect(geocoding_result.display_name).to eq(
-        "123, Main Street, Exampleville, Florida, 12345, United States"
+        "123 Main Street, Exampleville, Florida 12345"
       )
       expect(requested_queries.first).to include("q" => "123 Main St. Exampleville FL 12345")
       expect(requested_queries.second).to include("q" => "123 Main St.")
@@ -88,7 +88,7 @@ RSpec.describe Weather::GeocodingClient do
       geocoding_result = described_class.new(http_client: http_client).call("123 Main St. Exampleville")
 
       expect(geocoding_result.display_name).to eq(
-        "123, Main Street, Exampleville, Florida, 12345, United States"
+        "123 Main Street, Exampleville, Florida 12345"
       )
       expect(requested_queries.first).to include("q" => "123 Main St. Exampleville")
       expect(requested_queries.second).to include("q" => "123 Main St.")
@@ -108,13 +108,33 @@ RSpec.describe Weather::GeocodingClient do
 
       geocoding_result = described_class.new(http_client: http_client).call("123 Main St. Exampleville FL")
 
-      expect(geocoding_result.display_name).to eq("Exampleville, Example County, Florida, United States")
+      expect(geocoding_result.display_name).to eq("Exampleville, Florida")
       expect(requested_queries.first).to include("q" => "123 Main St. Exampleville FL")
       expect(requested_queries.second).to include("q" => "123 Main St.")
       expect(requested_queries.third).to include(
         "city" => "Exampleville",
         "state" => "FL"
       )
+    end
+
+    it "uses the submitted locality when the geocoder returns a landmark for a city and zip search" do
+      response = instance_double(Net::HTTPResponse, code: "200", body: landmark_response_body)
+      http_client = class_double(Net::HTTP, get_response: response)
+
+      geocoding_result = described_class.new(http_client: http_client).call("Sanford 32771")
+
+      expect(geocoding_result.display_name).to eq("Sanford, Florida 32771")
+      expect(geocoding_result.zip_code).to eq("32771")
+    end
+
+    it "uses the submitted city and state when the geocoder returns a street address for a city state zip search" do
+      response = instance_double(Net::HTTPResponse, code: "200", body: street_result_for_city_zip_response_body)
+      http_client = class_double(Net::HTTP, get_response: response)
+
+      geocoding_result = described_class.new(http_client: http_client).call("Sanford FL 32771")
+
+      expect(geocoding_result.display_name).to eq("Sanford, Florida 32771")
+      expect(geocoding_result.zip_code).to eq("32771")
     end
 
     it "raises a location not found error when geocoding returns no matches" do
@@ -174,6 +194,8 @@ RSpec.describe Weather::GeocodingClient do
           "lat" => "37.3229",
           "lon" => "-122.0322",
           "address" => {
+            "city" => "Cupertino",
+            "state" => "California",
             "postcode" => "95014-2083"
           }
         }
@@ -204,7 +226,44 @@ RSpec.describe Weather::GeocodingClient do
           "address" => {
             "house_number" => "123",
             "road" => "Main Street",
+            "city" => "Exampleville",
+            "state" => "Florida",
             "postcode" => "12345"
+          }
+        }
+      ].to_json
+    end
+
+    def landmark_response_body
+      [
+        {
+          "display_name" => "Sanford (Auto Train), Jerry Avenue, Seminole County, Florida, 32771, United States",
+          "lat" => "28.8087682",
+          "lon" => "-81.2913649",
+          "address" => {
+            "railway" => "Sanford (Auto Train)",
+            "road" => "Jerry Avenue",
+            "county" => "Seminole County",
+            "state" => "Florida",
+            "postcode" => "32771"
+          }
+        }
+      ].to_json
+    end
+
+    def street_result_for_city_zip_response_body
+      [
+        {
+          "display_name" => "Returned Business, 2502, West 1st Street, Sanford, Seminole County, Florida, 32771, United States",
+          "lat" => "28.8117247",
+          "lon" => "-81.2949820",
+          "address" => {
+            "office" => "Returned Business",
+            "house_number" => "2502",
+            "road" => "West 1st Street",
+            "city" => "Sanford",
+            "state" => "Florida",
+            "postcode" => "32771"
           }
         }
       ].to_json

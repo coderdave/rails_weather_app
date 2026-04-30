@@ -36,7 +36,7 @@ module Weather
 
         raise Error, "geocoding request failed" unless response.code.to_i == 200
 
-        return build_result(response.body)
+        return build_result(response.body, location_query)
       rescue LocationNotFound
         next
       end
@@ -131,7 +131,7 @@ module Weather
     end
 
     def street_suffix_index_for(tokens)
-      tokens.rindex { |token| STREET_SUFFIXES.include?(token.downcase.delete(".")) }
+      tokens.rindex { |token| STREET_SUFFIXES.include?(token.downcase.delete(".,")) }
     end
 
     def postal_code_params(location_query)
@@ -140,7 +140,7 @@ module Weather
       { postalcode: location_query.zip_code }
     end
 
-    def build_result(response_body)
+    def build_result(response_body, location_query)
       results = JSON.parse(response_body)
       raise Error, "geocoding response could not be parsed" unless results.is_a?(Array)
 
@@ -149,13 +149,78 @@ module Weather
       raise Error, "geocoding response could not be parsed" unless result.is_a?(Hash)
 
       GeocodingResult.new(
-        display_name: result.fetch("display_name"),
+        display_name: display_name_from(result, location_query),
         zip_code: zip_code_from(result),
         latitude: latitude_from(result),
         longitude: longitude_from(result)
       )
     rescue JSON::ParserError, KeyError, ArgumentError
       raise Error, "geocoding response could not be parsed"
+    end
+
+    def display_name_from(result, location_query)
+      address = result.fetch("address", {})
+      zip_code = zip_code_from(result)
+
+      display_name_from_query(location_query, address, zip_code) ||
+        display_name_from_address(address, zip_code) ||
+        display_name_from_state_and_zip(address, zip_code) ||
+        result.fetch("display_name")
+    end
+
+    def display_name_from_address(address, zip_code)
+      state = address["state"]
+      locality = locality_from(address)
+      street_address = street_address_from(address)
+
+      if street_address && locality && state
+        display_name_with_zip([ street_address, locality, state ], zip_code)
+      elsif locality && state
+        display_name_with_zip([ locality, state ], zip_code)
+      end
+    end
+
+    def display_name_from_query(location_query, address, zip_code)
+      state = address["state"]
+      locality = query_locality_from(location_query)
+      return unless locality && state
+
+      display_name_with_zip([ locality, state ], zip_code)
+    end
+
+    def display_name_from_state_and_zip(address, zip_code)
+      return unless address["state"] && zip_code
+
+      "#{zip_code}, #{address['state']}"
+    end
+
+    def locality_from(address)
+      address.values_at("city", "town", "village", "hamlet", "municipality", "suburb", "residential").find(&:present?)
+    end
+
+    def street_address_from(address)
+      return unless address["house_number"].present? && address["road"].present?
+
+      "#{address['house_number']} #{address['road']}"
+    end
+
+    def display_name_with_zip(parts, zip_code)
+      display_name = parts.compact.join(", ")
+      return display_name unless zip_code
+
+      "#{display_name} #{zip_code}"
+    end
+
+    def query_locality_from(location_query)
+      query = location_query.to_s.sub(/\s+\d{5}(?:-\d{4})?\z/, "")
+      tokens = query.split
+      return if street_suffix_index_for(tokens)
+
+      city_state_match = query.match(CITY_STATE_QUERY_PATTERN)
+      return city_state_match[:city] if city_state_match
+
+      locality = tokens.join(" ").sub(/\b[A-Za-z]{2}\z/, "").delete_suffix(",").strip
+      locality if locality.present?
     end
 
     def latitude_from(result)
