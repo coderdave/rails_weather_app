@@ -66,12 +66,25 @@ module Weather
       GeocodingResult.new(
         display_name: result.fetch("display_name"),
         zip_code: zip_code_from(result),
-        # nominatim returns coordinates as strings, so convert them once at the boundary
-        latitude: Float(result.fetch("lat")),
-        longitude: Float(result.fetch("lon"))
+        latitude: latitude_from(result),
+        longitude: longitude_from(result)
       )
     rescue JSON::ParserError, KeyError, ArgumentError
       raise Error, "geocoding response could not be parsed"
+    end
+
+    def latitude_from(result)
+      # nominatim returns coordinates as strings, so convert them once at the boundary
+      Float(result.fetch("lat"))
+    rescue KeyError, ArgumentError, TypeError
+      raise LocationNotFound, "location coordinates were not found"
+    end
+
+    def longitude_from(result)
+      # nominatim returns coordinates as strings, so convert them once at the boundary
+      Float(result.fetch("lon"))
+    rescue KeyError, ArgumentError, TypeError
+      raise LocationNotFound, "location coordinates were not found"
     end
 
     def zip_code_from(result)

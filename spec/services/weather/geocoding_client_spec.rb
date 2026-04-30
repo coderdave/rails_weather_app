@@ -35,6 +35,19 @@ RSpec.describe Weather::GeocodingClient do
       end.to raise_error(Weather::GeocodingClient::LocationNotFound)
     end
 
+    it "raises a location not found error when geocoding does not return coordinates" do
+      response = instance_double(
+        Net::HTTPResponse,
+        code: "200",
+        body: [ { "display_name" => "Missing Coordinates" } ].to_json
+      )
+      http_client = class_double(Net::HTTP, get_response: response)
+
+      expect do
+        described_class.new(http_client: http_client).call("Missing Coordinates")
+      end.to raise_error(Weather::GeocodingClient::LocationNotFound)
+    end
+
     it "raises a geocoding error when the service response is not successful" do
       response = instance_double(Net::HTTPResponse, code: "503", body: "")
       http_client = class_double(Net::HTTP, get_response: response)

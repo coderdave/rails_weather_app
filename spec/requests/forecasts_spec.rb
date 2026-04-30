@@ -49,7 +49,7 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include('method="get"')
       expect(response.body).to include('name="location"')
       expect(response.body).to include('type="search"')
-      expect(response.body).to include('data-forecast-search-minimum-length-value="5"')
+      expect(response.body).to include('data-forecast-search-minimum-length-value="3"')
       expect(response.body).to include('data-forecast-search-target="searchForm"')
       expect(response.body).to include('data-forecast-search-target="locationInput"')
       expect(response.body).to include('data-forecast-search-target="searchButton"')
@@ -76,6 +76,14 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include("78&deg;F")
       expect(response.body).to include("63&deg;F")
       expect(response.body).to include("Partly cloudy")
+    end
+
+    it "lets the api try a simple location name" do
+      get root_path, params: { location: "Cupertino" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Here's your forecast...")
+      expect(response.body).to include("Cupertino")
     end
 
     it "renders the forecast for a zip code search" do
@@ -107,14 +115,33 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include("6068 Saint Julian Dr. Sanford FL 32771")
     end
 
-    it "shows a validation error for unrecognized location text" do
+    it "shows a validation error for a blank location" do
       expect(Weather::ForecastLookup).not_to receive(:call)
 
-      get root_path, params: { location: "Cupertino" }
+      get root_path, params: { location: "   " }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('value="Cupertino"')
-      expect(response.body).to include("Enter a ZIP code, city and state, or full street address.")
+      expect(response.body).to include("Enter a location")
+      expect(response.body).not_to include("Here's your forecast...")
+    end
+
+    it "shows a validation error for a location that is too long" do
+      expect(Weather::ForecastLookup).not_to receive(:call)
+
+      get root_path, params: { location: "a" * 256 }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Location is too long")
+      expect(response.body).not_to include("Here's your forecast...")
+    end
+
+    it "shows a validation error for unsupported characters" do
+      expect(Weather::ForecastLookup).not_to receive(:call)
+
+      get root_path, params: { location: "Cupertino | CA" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Location contains unsupported characters")
       expect(response.body).not_to include("Here's your forecast...")
     end
 
@@ -124,7 +151,7 @@ RSpec.describe "Forecast search", type: :request do
       get root_path, params: { location: "Missing, CA" }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("We couldn&#39;t find that location.")
+      expect(response.body).to include("We couldn&#39;t find a forecast for that location.")
       expect(response.body).not_to include("Here's your forecast...")
     end
 
@@ -141,10 +168,11 @@ RSpec.describe "Forecast search", type: :request do
     it "keeps the search button disabled when the location query is too short" do
       expect(Weather::ForecastLookup).not_to receive(:call)
 
-      get root_path, params: { location: "1234" }
+      get root_path, params: { location: "NY" }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('value="1234"')
+      expect(response.body).to include('value="NY"')
+      expect(response.body).to include("Enter a more specific location")
       expect(response.body).to include('class="search-button" disabled="disabled"')
     end
 
