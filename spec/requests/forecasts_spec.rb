@@ -108,11 +108,11 @@ RSpec.describe "Forecast search", type: :request do
     end
 
     it "renders the forecast for a full address without commas" do
-      get root_path, params: { location: "6068 Saint Julian Dr. Sanford FL 32771" }
+      get root_path, params: { location: "123 Main St. Exampleville FL 32771" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Here's your forecast...")
-      expect(response.body).to include("6068 Saint Julian Dr. Sanford FL 32771")
+      expect(response.body).to include("123 Main St. Exampleville FL 32771")
     end
 
     it "shows a validation error for a blank location" do

@@ -80,6 +80,7 @@ module Weather
     def location_query_params(location_query)
       [
         primary_location_query_params(location_query),
+        street_address_params(location_query),
         address_city_state_params(location_query),
         postal_code_params(location_query)
       ].compact.uniq
@@ -97,14 +98,22 @@ module Weather
       { city: match[:city], state: match[:state] }
     end
 
-    def address_city_state_params(location_query)
-      tokens = location_query.to_s.split
-      tokens.pop if tokens.last.to_s.match?(/\A\d{5}(?:-\d{4})?\z/)
+    def street_address_params(location_query)
+      tokens = address_tokens(location_query)
+      street_suffix_index = street_suffix_index_for(tokens)
+      return unless street_suffix_index
+      return if tokens.length == street_suffix_index + 1
 
+      # if a street+city search is not found exactly, retry the street address by itself
+      { q: tokens[0..street_suffix_index].join(" ") }
+    end
+
+    def address_city_state_params(location_query)
+      tokens = address_tokens(location_query)
       state = tokens.pop
       return unless state.to_s.match?(/\A[A-Za-z]{2}\z/)
 
-      street_suffix_index = tokens.rindex { |token| STREET_SUFFIXES.include?(token.downcase.delete(".")) }
+      street_suffix_index = street_suffix_index_for(tokens)
       return unless street_suffix_index
 
       city_tokens = tokens[(street_suffix_index + 1)..]
@@ -112,6 +121,17 @@ module Weather
 
       # if a street address is not found exactly, fall back to the city/state so a forecast can still be shown
       { city: city_tokens.join(" "), state: state }
+    end
+
+    def address_tokens(location_query)
+      tokens = location_query.to_s.split
+      tokens.pop if tokens.last.to_s.match?(/\A\d{5}(?:-\d{4})?\z/)
+
+      tokens
+    end
+
+    def street_suffix_index_for(tokens)
+      tokens.rindex { |token| STREET_SUFFIXES.include?(token.downcase.delete(".")) }
     end
 
     def postal_code_params(location_query)

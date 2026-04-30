@@ -28,11 +28,11 @@ RSpec.describe Weather::LocationResolver do
     end
 
     it "uses the user-provided zip code for the cache key when the query contains one" do
-      location_query = Weather::LocationQuery.new("6068 Saint Julian Dr. Sanford FL 32771")
+      location_query = Weather::LocationQuery.new("123 Main St. Exampleville FL 32771")
       geocoding_client = class_double(
         Weather::GeocodingClient,
         call: Weather::GeocodingResult.new(
-          display_name: "6068 Saint Julian Drive, Sanford, Florida, United States",
+          display_name: "123 Main Street, Exampleville, Florida, United States",
           zip_code: "32773",
           latitude: 28.7583,
           longitude: -81.3187
@@ -41,7 +41,7 @@ RSpec.describe Weather::LocationResolver do
 
       resolved_location = described_class.new(geocoding_client: geocoding_client).call(location_query)
 
-      expect(resolved_location.display_name).to eq("6068 Saint Julian Drive, Sanford, Florida, United States")
+      expect(resolved_location.display_name).to eq("123 Main Street, Exampleville, Florida, United States")
       expect(resolved_location.zip_code).to eq("32771")
       expect(resolved_location.cache_key).to eq("forecast:zip:32771")
     end

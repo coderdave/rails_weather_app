@@ -80,7 +80,7 @@ RSpec.describe Weather::LocationQuery do
   end
 
   it "extracts a zip code from a street address without commas" do
-    query = described_class.new("6068 Saint Julian Dr. Sanford FL 32771")
+    query = described_class.new("123 Main St. Exampleville FL 32771")
 
     expect(query.zip_code).to eq("32771")
   end

@@ -52,10 +52,10 @@ RSpec.describe Weather::GeocodingClient do
       end
     end
 
-    it "falls back to city and state when a no-comma street address with zip is not found" do
+    it "falls back to the street address when a no-comma street address with zip is not found" do
       requested_queries = []
       empty_response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
-      success_response = instance_double(Net::HTTPResponse, code: "200", body: sanford_response_body)
+      success_response = instance_double(Net::HTTPResponse, code: "200", body: example_street_response_body)
       responses = [ empty_response, success_response ]
       http_client = class_double(Net::HTTP)
 
@@ -64,20 +64,19 @@ RSpec.describe Weather::GeocodingClient do
         responses.shift
       end
 
-      geocoding_result = described_class.new(http_client: http_client).call("6068 Saint Julian Dr. Sanford FL 32771")
+      geocoding_result = described_class.new(http_client: http_client).call("123 Main St. Exampleville FL 12345")
 
-      expect(geocoding_result.display_name).to eq("Sanford, Seminole County, Florida, United States")
-      expect(requested_queries.first).to include("q" => "6068 Saint Julian Dr. Sanford FL 32771")
-      expect(requested_queries.second).to include(
-        "city" => "Sanford",
-        "state" => "FL"
+      expect(geocoding_result.display_name).to eq(
+        "123, Main Street, Exampleville, Florida, 12345, United States"
       )
+      expect(requested_queries.first).to include("q" => "123 Main St. Exampleville FL 12345")
+      expect(requested_queries.second).to include("q" => "123 Main St.")
     end
 
-    it "falls back to city and state when a no-comma street address without zip is not found" do
+    it "falls back to the street address when a no-comma street address with city is not found" do
       requested_queries = []
       empty_response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
-      success_response = instance_double(Net::HTTPResponse, code: "200", body: sanford_response_body)
+      success_response = instance_double(Net::HTTPResponse, code: "200", body: example_street_response_body)
       responses = [ empty_response, success_response ]
       http_client = class_double(Net::HTTP)
 
@@ -86,12 +85,34 @@ RSpec.describe Weather::GeocodingClient do
         responses.shift
       end
 
-      geocoding_result = described_class.new(http_client: http_client).call("6068 Saint Julian Dr. Sanford FL")
+      geocoding_result = described_class.new(http_client: http_client).call("123 Main St. Exampleville")
 
-      expect(geocoding_result.display_name).to eq("Sanford, Seminole County, Florida, United States")
-      expect(requested_queries.first).to include("q" => "6068 Saint Julian Dr. Sanford FL")
-      expect(requested_queries.second).to include(
-        "city" => "Sanford",
+      expect(geocoding_result.display_name).to eq(
+        "123, Main Street, Exampleville, Florida, 12345, United States"
+      )
+      expect(requested_queries.first).to include("q" => "123 Main St. Exampleville")
+      expect(requested_queries.second).to include("q" => "123 Main St.")
+    end
+
+    it "falls back to city and state when the street address fallback is not found" do
+      requested_queries = []
+      empty_response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
+      success_response = instance_double(Net::HTTPResponse, code: "200", body: example_city_state_response_body)
+      responses = [ empty_response, empty_response, success_response ]
+      http_client = class_double(Net::HTTP)
+
+      allow(http_client).to receive(:get_response) do |uri, _headers|
+        requested_queries << Rack::Utils.parse_query(uri.query)
+        responses.shift
+      end
+
+      geocoding_result = described_class.new(http_client: http_client).call("123 Main St. Exampleville FL")
+
+      expect(geocoding_result.display_name).to eq("Exampleville, Example County, Florida, United States")
+      expect(requested_queries.first).to include("q" => "123 Main St. Exampleville FL")
+      expect(requested_queries.second).to include("q" => "123 Main St.")
+      expect(requested_queries.third).to include(
+        "city" => "Exampleville",
         "state" => "FL"
       )
     end
@@ -159,15 +180,31 @@ RSpec.describe Weather::GeocodingClient do
       ].to_json
     end
 
-    def sanford_response_body
+    def example_city_state_response_body
       [
         {
-          "display_name" => "Sanford, Seminole County, Florida, United States",
+          "display_name" => "Exampleville, Example County, Florida, United States",
           "lat" => "28.8117345",
           "lon" => "-81.2680223",
           "address" => {
-            "city" => "Sanford",
+            "city" => "Exampleville",
             "state" => "Florida"
+          }
+        }
+      ].to_json
+    end
+
+    def example_street_response_body
+      [
+        {
+          "display_name" =>
+            "123, Main Street, Exampleville, Florida, 12345, United States",
+          "lat" => "28.8066021",
+          "lon" => "-81.3493758",
+          "address" => {
+            "house_number" => "123",
+            "road" => "Main Street",
+            "postcode" => "12345"
           }
         }
       ].to_json
