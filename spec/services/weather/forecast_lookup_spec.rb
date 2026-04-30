@@ -83,5 +83,21 @@ RSpec.describe Weather::ForecastLookup do
 
       expect(cache.read("forecast:zip:95014").location).to eq("Resolved Cupertino")
     end
+
+    it "does not cache lookups without a zip code cache key" do
+      resolved_location = Weather::ResolvedLocation.new(display_name: "Resolved Cupertino")
+      cache = instance_spy(ActiveSupport::Cache::MemoryStore)
+      location_resolver = class_double(Weather::LocationResolver, call: resolved_location)
+
+      forecast = described_class.new(
+        cache: cache,
+        location_resolver: location_resolver,
+        forecast_client: forecast_client
+      ).call("Cupertino, CA")
+
+      expect(forecast).not_to be_cached
+      expect(cache).not_to have_received(:read)
+      expect(cache).not_to have_received(:write)
+    end
   end
 end

@@ -16,13 +16,16 @@ module Weather
     def call(location_query)
       location_query = LocationQuery.new(location_query)
       resolved_location = location_resolver.call(location_query)
+      cache_key = resolved_location.cache_key
 
-      cached_forecast = cache.read(resolved_location.cache_key)
-      return mark_cached(cached_forecast) if cached_forecast
+      if cache_key.present?
+        cached_forecast = cache.read(cache_key)
+        return mark_cached(cached_forecast) if cached_forecast
+      end
 
       forecast = forecast_client.call(resolved_location)
 
-      cache.write(resolved_location.cache_key, forecast, expires_in: CACHE_EXPIRATION)
+      cache.write(cache_key, forecast, expires_in: CACHE_EXPIRATION) if cache_key.present?
       forecast
     end
 

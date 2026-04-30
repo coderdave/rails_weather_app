@@ -18,7 +18,7 @@ module Weather
         zip_code: zip_code,
         latitude: geocoding_result.latitude,
         longitude: geocoding_result.longitude,
-        cache_key: cache_key_for(geocoding_result.display_name, zip_code)
+        cache_key: cache_key_for(zip_code)
       )
     end
 
@@ -26,14 +26,11 @@ module Weather
 
     attr_reader :geocoding_client
 
-    def cache_key_for(display_name, zip_code)
-      if zip_code
-        # user-provided or geocoded zip codes become the stable cache key for repeated searches
-        "forecast:zip:#{zip_code}"
-      else
-        # city/state searches without a zip cache by the representative resolved location
-        "forecast:location:#{display_name.parameterize}"
-      end
+    def cache_key_for(zip_code)
+      return unless zip_code
+
+      # user-provided or geocoded zip codes become the stable cache key for repeated searches
+      "forecast:zip:#{zip_code}"
     end
   end
 end

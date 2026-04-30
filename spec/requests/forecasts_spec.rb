@@ -107,6 +107,19 @@ RSpec.describe "Forecast search", type: :request do
       expect(Weather::ForecastClient).to have_received(:call).once
     end
 
+    it "does not cache repeated searches without a zip code" do
+      get root_path, params: { location: "Cupertino" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Loaded from cache")
+
+      get root_path, params: { location: "Cupertino" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Loaded from cache")
+      expect(Weather::ForecastClient).to have_received(:call).twice
+    end
+
     it "renders the forecast for a full address without commas" do
       get root_path, params: { location: "123 Main St. Exampleville FL 32771" }
 
@@ -179,8 +192,6 @@ RSpec.describe "Forecast search", type: :request do
     def resolved_cache_key_for(location_query)
       if location_query.zip_code
         "forecast:zip:#{location_query.zip_code}"
-      else
-        "forecast:location:#{location_query.to_s.parameterize}"
       end
     end
   end

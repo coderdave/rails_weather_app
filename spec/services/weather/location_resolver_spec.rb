@@ -19,9 +19,7 @@ RSpec.describe Weather::LocationResolver do
       expect(resolved_location.zip_code).to be_nil
       expect(resolved_location.latitude).to eq(37.3229)
       expect(resolved_location.longitude).to eq(-122.0322)
-      expect(resolved_location.cache_key).to eq(
-        "forecast:location:cupertino-santa-clara-county-california-united-states"
-      )
+      expect(resolved_location.cache_key).to be_nil
       expect(geocoding_client).to have_received(:call) do |received_query|
         expect(received_query.to_s).to eq("Cupertino, CA")
       end
