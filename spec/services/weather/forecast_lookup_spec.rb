@@ -12,5 +12,11 @@ RSpec.describe Weather::ForecastLookup do
       expect(forecast.conditions).to eq("Partly cloudy")
       expect(forecast).not_to be_cached
     end
+
+    it "uses the normalized location query in the fake response" do
+      forecast = described_class.new.call("  Cupertino,   CA  ")
+
+      expect(forecast.location).to eq("Cupertino, CA")
+    end
   end
 end
