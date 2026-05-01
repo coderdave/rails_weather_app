@@ -15,14 +15,14 @@ module Weather
 
     def call(location_query)
       location_query = LocationQuery.new(location_query)
-      resolved_location = location_resolver.call(location_query)
-      cache_key = resolved_location.cache_key
+      cache_key = cache_key_for(location_query)
 
       if cache_key.present?
         cached_forecast = cache.read(cache_key)
         return mark_cached(cached_forecast) if cached_forecast
       end
 
+      resolved_location = location_resolver.call(location_query)
       forecast = forecast_client.call(resolved_location)
 
       cache.write(cache_key, forecast, expires_in: CACHE_EXPIRATION) if cache_key.present?
@@ -32,6 +32,12 @@ module Weather
     private
 
     attr_reader :cache, :location_resolver, :forecast_client
+
+    def cache_key_for(location_query)
+      return unless location_query.zip_code
+
+      "forecast:zip:#{location_query.zip_code}"
+    end
 
     # return a new forecast so the stored fresh value is not mutated after a cache hit
     def mark_cached(forecast)

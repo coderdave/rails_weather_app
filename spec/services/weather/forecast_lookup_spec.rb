@@ -56,13 +56,16 @@ RSpec.describe Weather::ForecastLookup do
       forecast = lookup.call("95014")
 
       expect(forecast).to be_cached
+      expect(location_resolver).to have_received(:call).once
       expect(forecast_client).to have_received(:call).once
     end
 
-    it "does not call the forecast client on a cache hit" do
+    it "does not resolve the location or call the forecast client on a submitted zip cache hit" do
       cache.write(resolved_location.cache_key, fresh_forecast)
+      location_resolver = class_double(Weather::LocationResolver)
       forecast_client = class_double(Weather::ForecastClient)
 
+      expect(location_resolver).not_to receive(:call)
       expect(forecast_client).not_to receive(:call)
 
       forecast = described_class.new(
@@ -74,7 +77,7 @@ RSpec.describe Weather::ForecastLookup do
       expect(forecast).to be_cached
     end
 
-    it "writes the forecast using the resolved cache key" do
+    it "writes the forecast using the submitted zip cache key" do
       described_class.new(
         cache: cache,
         location_resolver: location_resolver,
@@ -84,8 +87,12 @@ RSpec.describe Weather::ForecastLookup do
       expect(cache.read("forecast:zip:95014").location).to eq("Resolved Cupertino")
     end
 
-    it "does not cache lookups without a zip code cache key" do
-      resolved_location = Weather::ResolvedLocation.new(display_name: "Resolved Cupertino")
+    it "does not cache lookups when the submitted query does not include a zip code" do
+      resolved_location = Weather::ResolvedLocation.new(
+        display_name: "Resolved Cupertino",
+        zip_code: "95014",
+        cache_key: "forecast:zip:95014"
+      )
       cache = instance_spy(ActiveSupport::Cache::MemoryStore)
       location_resolver = class_double(Weather::LocationResolver, call: resolved_location)
 

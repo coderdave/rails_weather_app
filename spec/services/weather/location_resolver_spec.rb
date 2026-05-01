@@ -44,7 +44,7 @@ RSpec.describe Weather::LocationResolver do
       expect(resolved_location.cache_key).to eq("forecast:zip:32771")
     end
 
-    it "uses the geocoded zip code when the query does not contain one" do
+    it "keeps a geocoded zip code without making the query cacheable" do
       location_query = Weather::LocationQuery.new("1 Apple Park Way, Cupertino, CA")
       geocoding_client = class_double(
         Weather::GeocodingClient,
@@ -59,7 +59,7 @@ RSpec.describe Weather::LocationResolver do
       resolved_location = described_class.new(geocoding_client: geocoding_client).call(location_query)
 
       expect(resolved_location.zip_code).to eq("95014")
-      expect(resolved_location.cache_key).to eq("forecast:zip:95014")
+      expect(resolved_location.cache_key).to be_nil
     end
   end
 end

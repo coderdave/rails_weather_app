@@ -104,6 +104,7 @@ RSpec.describe "Forecast search", type: :request do
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Loaded from cache")
+      expect(Weather::LocationResolver).to have_received(:call).once
       expect(Weather::ForecastClient).to have_received(:call).once
     end
 
