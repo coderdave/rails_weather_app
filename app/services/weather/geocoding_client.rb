@@ -14,6 +14,10 @@ module Weather
       aly alley ave avenue blvd boulevard cir circle ct court dr drive hwy highway ln lane pkwy parkway pl place rd road
       st street ter terrace trl trail way
     ].freeze
+    FULL_ZIP_CODE_PATTERN = /\A\d{5}(?:-\d{4})?\z/
+    STATE_ABBREVIATION_PATTERN = /\A[A-Za-z]{2}\z/
+    TRAILING_STATE_ABBREVIATION_PATTERN = /\b[A-Za-z]{2}\z/
+    TRAILING_ZIP_CODE_PATTERN = /\s+\d{5}(?:-\d{4})?\z/
     CITY_STATE_QUERY_PATTERN =
       /\A(?<city>[A-Za-z][A-Za-z .'-]*?)(?:,\s*|\s+)(?<state>[A-Za-z]{2})\z/
 
@@ -111,7 +115,7 @@ module Weather
     def address_city_state_params(location_query)
       tokens = address_tokens(location_query)
       state = tokens.pop
-      return unless state.to_s.match?(/\A[A-Za-z]{2}\z/)
+      return unless state.to_s.match?(STATE_ABBREVIATION_PATTERN)
 
       street_suffix_index = street_suffix_index_for(tokens)
       return unless street_suffix_index
@@ -125,7 +129,7 @@ module Weather
 
     def address_tokens(location_query)
       tokens = location_query.to_s.split
-      tokens.pop if tokens.last.to_s.match?(/\A\d{5}(?:-\d{4})?\z/)
+      tokens.pop if tokens.last.to_s.match?(FULL_ZIP_CODE_PATTERN)
 
       tokens
     end
@@ -222,7 +226,7 @@ module Weather
     end
 
     def query_locality_from(location_query)
-      query = location_query.to_s.sub(/\s+\d{5}(?:-\d{4})?\z/, "")
+      query = location_query.to_s.sub(TRAILING_ZIP_CODE_PATTERN, "")
 
       city_state_match = query.match(CITY_STATE_QUERY_PATTERN)
       return city_state_match[:city] if city_state_match
@@ -231,7 +235,7 @@ module Weather
       return street_address_locality if street_address_locality
 
       tokens = query.split
-      locality = tokens.join(" ").sub(/\b[A-Za-z]{2}\z/, "").delete_suffix(",").strip
+      locality = tokens.join(" ").sub(TRAILING_STATE_ABBREVIATION_PATTERN, "").delete_suffix(",").strip
       locality if locality.present?
     end
 
@@ -242,7 +246,7 @@ module Weather
     def street_address_locality_from(query)
       tokens = query.split
       state = tokens.pop.to_s.delete(",")
-      return unless state.match?(/\A[A-Za-z]{2}\z/)
+      return unless state.match?(STATE_ABBREVIATION_PATTERN)
 
       street_suffix_index = street_suffix_index_for(tokens)
       return unless street_suffix_index

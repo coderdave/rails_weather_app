@@ -6,6 +6,7 @@ module Weather
     MAXIMUM_LENGTH = 255
     UNSUPPORTED_CHARACTER_PATTERN = /[<>{}\[\]|\\]/
     ZIP_CODE_PATTERN = /(?<!\d)(\d{5})(?:-\d{4})?(?!\d)/
+    WHITESPACE_PATTERN = /\s+/
 
     attr_reader :normalized_query
 
@@ -32,7 +33,7 @@ module Weather
     private
 
     def normalize(raw_query)
-      raw_query.to_s.strip.gsub(/\s+/, " ")
+      raw_query.to_s.strip.gsub(WHITESPACE_PATTERN, " ")
     end
   end
 end
