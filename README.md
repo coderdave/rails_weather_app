@@ -1,24 +1,164 @@
-# README
+<!-- @format -->
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+# Rails Weather App
 
-Things you may want to cover:
+Rails Weather App is a small Rails application for looking up US weather forecasts by address, city/state, or ZIP code. It resolves a submitted location to coordinates, fetches forecast data from the National Weather Service, and displays the result in a simple web UI.
 
-* Ruby version
+## Features
 
-* System dependencies
+- Search by street address, city/state, or ZIP code
+- Current forecast period temperature, daily high/low, and conditions
+- 30-minute forecast caching for submitted ZIP-code searches
+- Visible cache-hit indicator when a forecast is served from cache
+- User-friendly validation and external-service error handling
+- Service-oriented weather lookup code with request and unit specs
 
-* Configuration
+## Requirements
 
-* Database creation
+- Ruby 3.4.9, as defined in `.ruby-version`
+- Bundler
+- Outbound HTTPS access to Nominatim and `api.weather.gov`
 
-* Database initialization
+The app does not use a database. Active Record is not loaded, and no database setup step is required.
 
-* How to run the test suite
+## Setup
 
-* Services (job queues, cache servers, search engines, etc.)
+Install dependencies:
 
-* Deployment instructions
+```bash
+bundle install
+```
 
-* ...
+Run the test suite:
+
+```bash
+bundle exec rspec
+```
+
+Run the app locally:
+
+```bash
+bin/rails server
+```
+
+Then open `http://localhost:3000`.
+
+## Caching Behavior
+
+Forecasts are cached only when the submitted search includes a ZIP code. The cache key format is:
+
+```text
+forecast:zip:<zip_code>
+```
+
+For ZIP-code searches, the app checks the cache before resolving the location. A cache hit skips geocoding and weather API calls. A cache miss resolves the location, fetches the forecast, stores it for 30 minutes, and returns the fresh forecast.
+
+Cached search examples:
+
+- `95014`
+- `Cupertino CA 95014`
+- `1 Apple Park Way, Cupertino, CA 95014`
+
+Uncached search examples:
+
+- `Cupertino`
+- `Cupertino, CA`
+- `1 Apple Park Way, Cupertino, CA`
+
+If the user does not submit a ZIP code, the forecast is not cached, even if geocoding resolves the address to a ZIP code.
+
+Development uses an in-memory cache by default so the ZIP-code cache behavior is visible during local manual testing. This differs from the default Rails development setting, where caching is usually off to avoid stale data while editing code. The tradeoff is that repeated ZIP-code searches can return cached forecast data for up to 30 minutes.
+
+Restart the Rails server or clear `Rails.cache` in the console to reset cached forecasts:
+
+```ruby
+Rails.cache.clear
+```
+
+To temporarily disable caching in development, change `config.cache_store` to `:null_store` in `config/environments/development.rb` and restart the server:
+
+```ruby
+config.action_controller.perform_caching = false
+config.cache_store = :null_store
+```
+
+Restore the checked-in `:memory_store` settings when you want local cache-hit behavior again.
+
+## External Services
+
+The app uses two public services:
+
+- Nominatim, OpenStreetMap's geocoding API, converts submitted US locations into latitude and longitude.
+- National Weather Service API resolves coordinates to forecast endpoints and returns forecast periods.
+
+No API keys are required. Both clients send an application-specific `User-Agent`, and both are wrapped behind small service objects so network behavior can be tested without live API calls.
+
+## Architecture
+
+The forecast flow is split into small service objects under `app/services/weather`.
+
+```text
+User input
+  -> LocationQuery validates and normalizes the submitted search
+  -> ForecastLookup checks the submitted ZIP cache key, when present
+  -> LocationResolver geocodes the search into coordinates
+  -> ForecastClient coordinates the NWS clients
+  -> NwsPointsClient resolves coordinates to an NWS forecast URL
+  -> NwsForecastClient parses forecast periods
+  -> Forecast is rendered by ForecastsController
+```
+
+Primary objects:
+
+- `Weather::LocationQuery` normalizes input, validates length and unsupported characters, and extracts submitted ZIP codes.
+- `Weather::ForecastLookup` owns cache lookup/write behavior and coordinates the lookup flow.
+- `Weather::LocationResolver` turns a valid query into a `ResolvedLocation`.
+- `Weather::GeocodingClient` wraps Nominatim requests and response parsing.
+- `Weather::ForecastClient` combines NWS points and forecast clients into one app-level forecast.
+- `Weather::NwsPointsClient` fetches NWS metadata for resolved coordinates.
+- `Weather::NwsForecastClient` fetches and parses forecast periods.
+- `Weather::Forecast` is the final value object rendered by the UI.
+
+## Project Structure
+
+```text
+app/
+  controllers/
+    forecasts_controller.rb
+  javascript/controllers/
+    forecast_search_controller.js
+  services/weather/
+    forecast_lookup.rb
+    location_query.rb
+    location_resolver.rb
+    geocoding_client.rb
+    forecast_client.rb
+    nws_points_client.rb
+    nws_forecast_client.rb
+  views/forecasts/
+    index.html.erb
+spec/
+  requests/
+    forecasts_spec.rb
+  services/weather/
+```
+
+## Quality Checks
+
+Run the full verification set:
+
+```bash
+bundle exec rspec
+bundle exec rubocop
+bundle exec brakeman -q
+bin/importmap audit
+```
+
+The GitHub Actions workflow runs security scans, dependency audit, RuboCop, and the RSpec suite.
+
+## Production Notes
+
+- The app is stateless and can run behind a standard Rails-compatible web server.
+- The default Rails cache store is process-local. Use Redis or another shared cache store if running multiple application instances.
+- External API latency and availability are handled with user-facing error messages, but a production deployment should add explicit HTTP timeouts, request instrumentation, and rate limiting around upstream calls.
+- NWS forecasts cover the United States. The geocoder is also restricted to US results.
