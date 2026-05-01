@@ -1,4 +1,6 @@
 module Weather
+  # Orchestrates forecast lookup for a validated location query.
+  # Submitted ZIP-code searches are cacheable and cache hits return before any external API calls.
   class ForecastLookup
     # thirty minutes matches the assessment cache window for repeated searches
     CACHE_EXPIRATION = 30.minutes

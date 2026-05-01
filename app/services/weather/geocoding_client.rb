@@ -2,6 +2,8 @@ require "json"
 require "uri"
 
 module Weather
+  # Wraps Nominatim search requests and translates the first usable result into app geocoding data.
+  # Query fallbacks handle common address, city/state, and ZIP-code searches without exposing API details.
   class GeocodingClient
     # nws requires coordinates, and nominatim gives us a no-key geocoder for zip, city, and address searches
     ENDPOINT = URI("https://nominatim.openstreetmap.org/search").freeze

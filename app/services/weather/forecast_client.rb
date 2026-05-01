@@ -1,4 +1,5 @@
 module Weather
+  # Combines NWS point metadata, hourly forecast data, and daily forecast data into the app forecast model
   class ForecastClient
     def self.call(resolved_location)
       new.call(resolved_location)

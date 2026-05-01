@@ -2,6 +2,7 @@ require "json"
 require "uri"
 
 module Weather
+  # Resolves latitude and longitude into the NWS forecast endpoint URLs for that grid point
   class NwsPointsClient
     ENDPOINT = "https://api.weather.gov/points".freeze
     REQUEST_HEADERS = {

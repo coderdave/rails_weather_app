@@ -1,4 +1,5 @@
 module Weather
+  # Parsed NWS forecast values before they are combined into the final app forecast
   NwsForecastResult = Struct.new(
     :current_temperature,
     :high_temperature,

@@ -2,6 +2,8 @@ require "json"
 require "uri"
 
 module Weather
+  # Fetches an NWS forecast endpoint and parses the forecast periods the UI needs.
+  # The same parser is used for daily and hourly endpoints.
   class NwsForecastClient
     # nws forecast urls come from the points endpoint, so this client follows that api-provided link
     EXTENDED_PERIOD_LIMIT = 4

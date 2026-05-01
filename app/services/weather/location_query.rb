@@ -1,4 +1,6 @@
 module Weather
+  # Normalizes and validates submitted location text.
+  # ZIP extraction is based only on the user's input, which keeps cacheability tied to the submitted search.
   class LocationQuery
     MINIMUM_LENGTH = 3
     MAXIMUM_LENGTH = 255

@@ -1,4 +1,5 @@
 module Weather
+  # Final forecast data rendered by the UI
   Forecast = Struct.new(
     :location,
     :current_temperature,

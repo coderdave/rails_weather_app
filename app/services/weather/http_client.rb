@@ -1,6 +1,8 @@
 require "net/http"
 
 module Weather
+  # Shared outbound HTTP boundary for weather services.
+  # It centralizes request headers and explicit timeouts so API clients do not call Net::HTTP directly.
   class HttpClient
     DEFAULT_TIMEOUT_SECONDS = 5.0
     DEFAULT_USER_AGENT = "rails-weather-app".freeze

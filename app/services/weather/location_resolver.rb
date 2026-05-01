@@ -1,4 +1,5 @@
 module Weather
+  # Converts a normalized location query into displayable coordinates through the geocoder boundary.
   class LocationResolver
     def self.call(location_query)
       new.call(location_query)
