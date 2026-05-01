@@ -1,14 +1,12 @@
 require "json"
-require "net/http"
+require "uri"
 
 module Weather
   class GeocodingClient
     # nws requires coordinates, and nominatim gives us a no-key geocoder for zip, city, and address searches
     ENDPOINT = URI("https://nominatim.openstreetmap.org/search").freeze
-    # nominatim asks clients to identify themselves instead of using a generic ruby user agent
     REQUEST_HEADERS = {
-      "Accept" => "application/json",
-      "User-Agent" => "rails-weather-app coding-assessment"
+      "Accept" => "application/json"
     }.freeze
     STREET_SUFFIXES = %w[
       aly alley ave avenue blvd boulevard cir circle ct court dr drive hwy highway ln lane pkwy parkway pl place rd road
@@ -24,7 +22,7 @@ module Weather
       new.call(location_query)
     end
 
-    def initialize(http_client: Net::HTTP)
+    def initialize(http_client: HttpClient)
       @http_client = http_client
     end
 
@@ -49,7 +47,7 @@ module Weather
     attr_reader :http_client
 
     def fetch_response(uri)
-      http_client.get_response(uri, REQUEST_HEADERS)
+      http_client.get(uri, headers: REQUEST_HEADERS)
     rescue StandardError
       raise Error, "geocoding request failed"
     end

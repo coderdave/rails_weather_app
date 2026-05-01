@@ -4,7 +4,7 @@ RSpec.describe Weather::NwsPointsClient do
   describe "#call" do
     it "returns the forecast metadata for a resolved location" do
       response = instance_double(Net::HTTPResponse, code: "200", body: points_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
       resolved_location = Weather::ResolvedLocation.new(latitude: 37.3229, longitude: -122.0322)
 
       points_result = described_class.new(http_client: http_client).call(resolved_location)
@@ -14,28 +14,27 @@ RSpec.describe Weather::NwsPointsClient do
       expect(points_result.city).to eq("Cupertino")
       expect(points_result.state).to eq("CA")
       expect(points_result.time_zone).to eq("America/Los_Angeles")
-      expect(http_client).to have_received(:get_response) do |uri, headers|
+      expect(http_client).to have_received(:get) do |uri, headers:|
         expect(uri.to_s).to eq("https://api.weather.gov/points/37.3229,-122.0322")
         expect(headers["Accept"]).to eq("application/geo+json")
-        expect(headers["User-Agent"]).to include("rails-weather-app")
       end
     end
 
     it "rounds coordinates to the precision supported by nws points" do
       response = instance_double(Net::HTTPResponse, code: "200", body: points_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
       resolved_location = Weather::ResolvedLocation.new(latitude: 28.8051861, longitude: -81.3052854)
 
       described_class.new(http_client: http_client).call(resolved_location)
 
-      expect(http_client).to have_received(:get_response) do |uri, _headers|
+      expect(http_client).to have_received(:get) do |uri, **_kwargs|
         expect(uri.to_s).to eq("https://api.weather.gov/points/28.8052,-81.3053")
       end
     end
 
     it "raises an error when the points response is not successful" do
       response = instance_double(Net::HTTPResponse, code: "503", body: "")
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
       resolved_location = Weather::ResolvedLocation.new(latitude: 37.3229, longitude: -122.0322)
 
       expect do
@@ -44,10 +43,10 @@ RSpec.describe Weather::NwsPointsClient do
     end
 
     it "raises an error when the points request cannot be completed" do
-      http_client = class_double(Net::HTTP)
+      http_client = class_double(Weather::HttpClient)
       resolved_location = Weather::ResolvedLocation.new(latitude: 37.3229, longitude: -122.0322)
 
-      allow(http_client).to receive(:get_response).and_raise(SocketError)
+      allow(http_client).to receive(:get).and_raise(SocketError)
 
       expect do
         described_class.new(http_client: http_client).call(resolved_location)
@@ -56,7 +55,7 @@ RSpec.describe Weather::NwsPointsClient do
 
     it "raises an error when the points response cannot be parsed" do
       response = instance_double(Net::HTTPResponse, code: "200", body: "not json")
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
       resolved_location = Weather::ResolvedLocation.new(latitude: 37.3229, longitude: -122.0322)
 
       expect do

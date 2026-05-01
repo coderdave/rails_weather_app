@@ -92,7 +92,15 @@ The app uses two public services:
 - Nominatim, OpenStreetMap's geocoding API, converts submitted US locations into latitude and longitude.
 - National Weather Service API resolves coordinates to forecast endpoints and returns forecast periods.
 
-No API keys are required. Both clients send an application-specific `User-Agent`, and both are wrapped behind small service objects so network behavior can be tested without live API calls.
+No API keys are required. Requests are made through a shared HTTP client with explicit open, read, and write timeouts so upstream services cannot hang the Rails request indefinitely.
+
+Optional environment variables:
+
+- `WEATHER_USER_AGENT` sets the outbound `User-Agent` header. Defaults to `rails-weather-app`.
+- `WEATHER_CONTACT` adds contact information to the default `User-Agent` and sends a `From` header. This is useful for identifying the app to public weather and geocoding services.
+- `WEATHER_HTTP_OPEN_TIMEOUT_SECONDS` sets the connection timeout. Defaults to `5`.
+- `WEATHER_HTTP_READ_TIMEOUT_SECONDS` sets the response read timeout. Defaults to `5`.
+- `WEATHER_HTTP_WRITE_TIMEOUT_SECONDS` sets the request write timeout. Defaults to `5`.
 
 ## Architecture
 
@@ -132,6 +140,7 @@ app/
   services/weather/
     forecast_lookup.rb
     forecast_period.rb
+    http_client.rb
     location_query.rb
     location_resolver.rb
     geocoding_client.rb
@@ -163,5 +172,5 @@ The GitHub Actions workflow runs security scans, dependency audit, RuboCop, and 
 
 - The app is stateless and can run behind a standard Rails-compatible web server.
 - The default Rails cache store is process-local. Use Redis or another shared cache store if running multiple application instances.
-- External API latency and availability are handled with user-facing error messages, but a production deployment should add explicit HTTP timeouts, request instrumentation, and rate limiting around upstream calls.
+- External API latency and availability are handled with explicit HTTP timeouts and user-facing error messages. A production deployment should also add request instrumentation and rate limiting around upstream calls.
 - NWS forecasts cover the United States. The geocoder is also restricted to US results.

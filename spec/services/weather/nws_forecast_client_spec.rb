@@ -4,7 +4,7 @@ RSpec.describe Weather::NwsForecastClient do
   describe "#call" do
     it "returns forecast values from the nws forecast periods" do
       response = instance_double(Net::HTTPResponse, code: "200", body: forecast_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
       forecast_url = "https://api.weather.gov/gridpoints/MTR/85,105/forecast"
 
       forecast_result = described_class.new(http_client: http_client).call(forecast_url)
@@ -20,16 +20,15 @@ RSpec.describe Weather::NwsForecastClient do
         temperature: 58,
         conditions: "Mostly Clear"
       )
-      expect(http_client).to have_received(:get_response) do |uri, headers|
+      expect(http_client).to have_received(:get) do |uri, headers:|
         expect(uri.to_s).to eq(forecast_url)
         expect(headers["Accept"]).to eq("application/geo+json")
-        expect(headers["User-Agent"]).to include("rails-weather-app")
       end
     end
 
     it "raises an error when the forecast response is not successful" do
       response = instance_double(Net::HTTPResponse, code: "503", body: "")
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       expect do
         described_class.new(http_client: http_client).call("https://api.weather.gov/gridpoints/MTR/85,105/forecast")
@@ -37,9 +36,9 @@ RSpec.describe Weather::NwsForecastClient do
     end
 
     it "raises an error when the forecast request cannot be completed" do
-      http_client = class_double(Net::HTTP)
+      http_client = class_double(Weather::HttpClient)
 
-      allow(http_client).to receive(:get_response).and_raise(SocketError)
+      allow(http_client).to receive(:get).and_raise(SocketError)
 
       expect do
         described_class.new(http_client: http_client).call("https://api.weather.gov/gridpoints/MTR/85,105/forecast")
@@ -48,7 +47,7 @@ RSpec.describe Weather::NwsForecastClient do
 
     it "raises an error when the forecast response cannot be parsed" do
       response = instance_double(Net::HTTPResponse, code: "200", body: "not json")
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       expect do
         described_class.new(http_client: http_client).call("https://api.weather.gov/gridpoints/MTR/85,105/forecast")
@@ -56,7 +55,7 @@ RSpec.describe Weather::NwsForecastClient do
     end
 
     it "raises an error when the forecast url is invalid" do
-      http_client = class_double(Net::HTTP)
+      http_client = class_double(Weather::HttpClient)
 
       expect do
         described_class.new(http_client: http_client).call("not a url")

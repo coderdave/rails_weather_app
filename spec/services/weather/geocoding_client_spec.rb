@@ -4,7 +4,7 @@ RSpec.describe Weather::GeocodingClient do
   describe "#call" do
     it "returns normalized geocoding data for a location query" do
       response = instance_double(Net::HTTPResponse, code: "200", body: geocoding_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       geocoding_result = described_class.new(http_client: http_client).call("  Cupertino,   CA  ")
 
@@ -12,7 +12,7 @@ RSpec.describe Weather::GeocodingClient do
       expect(geocoding_result.zip_code).to eq("95014")
       expect(geocoding_result.latitude).to eq(37.3229)
       expect(geocoding_result.longitude).to eq(-122.0322)
-      expect(http_client).to have_received(:get_response) do |uri, headers|
+      expect(http_client).to have_received(:get) do |uri, headers:|
         expect(uri.host).to eq("nominatim.openstreetmap.org")
         expect(Rack::Utils.parse_query(uri.query)).to include(
           "addressdetails" => "1",
@@ -23,17 +23,16 @@ RSpec.describe Weather::GeocodingClient do
           "state" => "CA"
         )
         expect(headers["Accept"]).to eq("application/json")
-        expect(headers["User-Agent"]).to include("rails-weather-app")
       end
     end
 
     it "uses a structured city and state query when there is no comma" do
       response = instance_double(Net::HTTPResponse, code: "200", body: geocoding_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       described_class.new(http_client: http_client).call("Sanford FL")
 
-      expect(http_client).to have_received(:get_response) do |uri, _headers|
+      expect(http_client).to have_received(:get) do |uri, **_kwargs|
         expect(Rack::Utils.parse_query(uri.query)).to include(
           "city" => "Sanford",
           "state" => "FL"
@@ -43,11 +42,11 @@ RSpec.describe Weather::GeocodingClient do
 
     it "uses the unstructured query for other location text" do
       response = instance_double(Net::HTTPResponse, code: "200", body: geocoding_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       described_class.new(http_client: http_client).call("1 Apple Park Way, Cupertino, CA")
 
-      expect(http_client).to have_received(:get_response) do |uri, _headers|
+      expect(http_client).to have_received(:get) do |uri, **_kwargs|
         expect(Rack::Utils.parse_query(uri.query)).to include("q" => "1 Apple Park Way, Cupertino, CA")
       end
     end
@@ -57,9 +56,9 @@ RSpec.describe Weather::GeocodingClient do
       empty_response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
       success_response = instance_double(Net::HTTPResponse, code: "200", body: example_street_response_body)
       responses = [ empty_response, success_response ]
-      http_client = class_double(Net::HTTP)
+      http_client = class_double(Weather::HttpClient)
 
-      allow(http_client).to receive(:get_response) do |uri, _headers|
+      allow(http_client).to receive(:get) do |uri, **_kwargs|
         requested_queries << Rack::Utils.parse_query(uri.query)
         responses.shift
       end
@@ -78,9 +77,9 @@ RSpec.describe Weather::GeocodingClient do
       empty_response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
       success_response = instance_double(Net::HTTPResponse, code: "200", body: example_street_response_body)
       responses = [ empty_response, success_response ]
-      http_client = class_double(Net::HTTP)
+      http_client = class_double(Weather::HttpClient)
 
-      allow(http_client).to receive(:get_response) do |uri, _headers|
+      allow(http_client).to receive(:get) do |uri, **_kwargs|
         requested_queries << Rack::Utils.parse_query(uri.query)
         responses.shift
       end
@@ -99,9 +98,9 @@ RSpec.describe Weather::GeocodingClient do
       empty_response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
       success_response = instance_double(Net::HTTPResponse, code: "200", body: example_city_state_response_body)
       responses = [ empty_response, empty_response, success_response ]
-      http_client = class_double(Net::HTTP)
+      http_client = class_double(Weather::HttpClient)
 
-      allow(http_client).to receive(:get_response) do |uri, _headers|
+      allow(http_client).to receive(:get) do |uri, **_kwargs|
         requested_queries << Rack::Utils.parse_query(uri.query)
         responses.shift
       end
@@ -119,7 +118,7 @@ RSpec.describe Weather::GeocodingClient do
 
     it "uses the submitted locality when the geocoder returns a landmark for a city and zip search" do
       response = instance_double(Net::HTTPResponse, code: "200", body: landmark_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       geocoding_result = described_class.new(http_client: http_client).call("Sanford 32771")
 
@@ -129,7 +128,7 @@ RSpec.describe Weather::GeocodingClient do
 
     it "uses the submitted city and state when the geocoder returns a street address for a city state zip search" do
       response = instance_double(Net::HTTPResponse, code: "200", body: street_result_for_city_zip_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       geocoding_result = described_class.new(http_client: http_client).call("Sanford FL 32771")
 
@@ -139,7 +138,7 @@ RSpec.describe Weather::GeocodingClient do
 
     it "uses the submitted city when the geocoder returns the zip code as the locality" do
       response = instance_double(Net::HTTPResponse, code: "200", body: zip_locality_response_body)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       geocoding_result = described_class.new(http_client: http_client).call("6068 Saint Julian Dr. Sanford FL 32771")
 
@@ -149,7 +148,7 @@ RSpec.describe Weather::GeocodingClient do
 
     it "raises a location not found error when geocoding returns no matches" do
       response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       expect do
         described_class.new(http_client: http_client).call("Missing Place, ZZ")
@@ -162,7 +161,7 @@ RSpec.describe Weather::GeocodingClient do
         code: "200",
         body: [ { "display_name" => "Missing Coordinates" } ].to_json
       )
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       expect do
         described_class.new(http_client: http_client).call("Missing Coordinates")
@@ -171,7 +170,7 @@ RSpec.describe Weather::GeocodingClient do
 
     it "raises a geocoding error when the service response is not successful" do
       response = instance_double(Net::HTTPResponse, code: "503", body: "")
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       expect do
         described_class.new(http_client: http_client).call("Cupertino, CA")
@@ -179,9 +178,9 @@ RSpec.describe Weather::GeocodingClient do
     end
 
     it "raises a geocoding error when the request cannot be completed" do
-      http_client = class_double(Net::HTTP)
+      http_client = class_double(Weather::HttpClient)
 
-      allow(http_client).to receive(:get_response).and_raise(SocketError)
+      allow(http_client).to receive(:get).and_raise(SocketError)
 
       expect do
         described_class.new(http_client: http_client).call("Cupertino, CA")
@@ -190,7 +189,7 @@ RSpec.describe Weather::GeocodingClient do
 
     it "raises a geocoding error when the response cannot be parsed" do
       response = instance_double(Net::HTTPResponse, code: "200", body: "not json")
-      http_client = class_double(Net::HTTP, get_response: response)
+      http_client = class_double(Weather::HttpClient, get: response)
 
       expect do
         described_class.new(http_client: http_client).call("Cupertino, CA")

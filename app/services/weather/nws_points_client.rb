@@ -1,13 +1,11 @@
 require "json"
-require "net/http"
+require "uri"
 
 module Weather
   class NwsPointsClient
     ENDPOINT = "https://api.weather.gov/points".freeze
-    # nws requires a user agent so they can identify application traffic
     REQUEST_HEADERS = {
-      "Accept" => "application/geo+json",
-      "User-Agent" => "rails-weather-app coding-assessment"
+      "Accept" => "application/geo+json"
     }.freeze
 
     class Error < StandardError; end
@@ -16,7 +14,7 @@ module Weather
       new.call(resolved_location)
     end
 
-    def initialize(http_client: Net::HTTP)
+    def initialize(http_client: HttpClient)
       @http_client = http_client
     end
 
@@ -33,7 +31,7 @@ module Weather
     attr_reader :http_client
 
     def fetch_response(uri)
-      http_client.get_response(uri, REQUEST_HEADERS)
+      http_client.get(uri, headers: REQUEST_HEADERS)
     rescue StandardError
       raise Error, "nws points request failed"
     end
