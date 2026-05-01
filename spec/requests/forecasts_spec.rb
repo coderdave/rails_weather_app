@@ -12,10 +12,8 @@ RSpec.describe "Forecast search", type: :request do
 
         Weather::ResolvedLocation.new(
           display_name: normalized_query.to_s,
-          zip_code: normalized_query.zip_code,
           latitude: 37.3229,
-          longitude: -122.0322,
-          cache_key: resolved_cache_key_for(normalized_query)
+          longitude: -122.0322
         )
       end
 
@@ -197,12 +195,6 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include('value="NY"')
       expect(response.body).to include("Enter a more specific location")
       expect(response.body).to include('class="search-button" disabled="disabled"')
-    end
-
-    def resolved_cache_key_for(location_query)
-      if location_query.zip_code
-        "forecast:zip:#{location_query.zip_code}"
-      end
     end
   end
 end

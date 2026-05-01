@@ -49,10 +49,10 @@ Then open `http://localhost:3000`.
 Forecasts are cached only when the submitted search includes a ZIP code. The cache key format is:
 
 ```text
-forecast:zip:<zip_code>
+forecast:v1:zip:<zip_code>
 ```
 
-For ZIP-code searches, the app checks the cache before resolving the location. A cache hit skips geocoding and weather API calls. A cache miss resolves the location, fetches the forecast, stores it for 30 minutes, and returns the fresh forecast.
+For ZIP-code searches, the app checks the cache before resolving the location. A cache hit skips geocoding and weather API calls. A cache miss resolves the location, fetches the forecast, stores it for 30 minutes, and returns the fresh forecast. The cache key includes a version segment so old serialized forecast shapes can be bypassed cleanly after future data-structure changes.
 
 Cached search examples:
 

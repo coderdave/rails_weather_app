@@ -5,8 +5,7 @@ RSpec.describe Weather::ForecastLookup do
     let(:cache) { ActiveSupport::Cache::MemoryStore.new }
     let(:resolved_location) do
       Weather::ResolvedLocation.new(
-        display_name: "Resolved Cupertino",
-        cache_key: "forecast:zip:95014"
+        display_name: "Resolved Cupertino"
       )
     end
     let(:fresh_forecast) do
@@ -61,7 +60,7 @@ RSpec.describe Weather::ForecastLookup do
     end
 
     it "does not resolve the location or call the forecast client on a submitted zip cache hit" do
-      cache.write(resolved_location.cache_key, fresh_forecast)
+      cache.write("forecast:v1:zip:95014", fresh_forecast)
       location_resolver = class_double(Weather::LocationResolver)
       forecast_client = class_double(Weather::ForecastClient)
 
@@ -77,22 +76,21 @@ RSpec.describe Weather::ForecastLookup do
       expect(forecast).to be_cached
     end
 
-    it "writes the forecast using the submitted zip cache key" do
+    it "writes the forecast using the versioned submitted zip cache key" do
       described_class.new(
         cache: cache,
         location_resolver: location_resolver,
         forecast_client: forecast_client
       ).call("95014")
 
-      expect(cache.read("forecast:zip:95014").location).to eq("Resolved Cupertino")
+      expect(cache.read("forecast:v1:zip:95014").location).to eq("Resolved Cupertino")
     end
 
-    it "deletes incompatible cached forecasts and fetches a fresh forecast" do
-      cache = instance_spy(ActiveSupport::Cache::MemoryStore)
-
-      allow(cache).to receive(:read)
-        .with("forecast:zip:95014")
-        .and_raise(TypeError, "struct Weather::Forecast not compatible (struct size differs)")
+    it "does not read the previous unversioned cache key" do
+      cache.write(
+        "forecast:zip:95014",
+        Weather::Forecast.new(location: "Old cached Cupertino", cached: false)
+      )
 
       forecast = described_class.new(
         cache: cache,
@@ -102,19 +100,12 @@ RSpec.describe Weather::ForecastLookup do
 
       expect(forecast).not_to be_cached
       expect(forecast.location).to eq("Resolved Cupertino")
-      expect(cache).to have_received(:delete).with("forecast:zip:95014")
-      expect(cache).to have_received(:write).with(
-        "forecast:zip:95014",
-        fresh_forecast,
-        expires_in: described_class::CACHE_EXPIRATION
-      )
+      expect(forecast_client).to have_received(:call).once
     end
 
     it "does not cache lookups when the submitted query does not include a zip code" do
       resolved_location = Weather::ResolvedLocation.new(
-        display_name: "Resolved Cupertino",
-        zip_code: "95014",
-        cache_key: "forecast:zip:95014"
+        display_name: "Resolved Cupertino"
       )
       cache = instance_spy(ActiveSupport::Cache::MemoryStore)
       location_resolver = class_double(Weather::LocationResolver, call: resolved_location)

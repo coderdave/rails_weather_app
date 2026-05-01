@@ -14,22 +14,13 @@ module Weather
 
       ResolvedLocation.new(
         display_name: geocoding_result.display_name,
-        zip_code: location_query.zip_code || geocoding_result.zip_code,
         latitude: geocoding_result.latitude,
-        longitude: geocoding_result.longitude,
-        cache_key: cache_key_for(location_query.zip_code)
+        longitude: geocoding_result.longitude
       )
     end
 
     private
 
     attr_reader :geocoding_client
-
-    def cache_key_for(zip_code)
-      return unless zip_code
-
-      # only submitted zip codes are cacheable under the assessment requirement
-      "forecast:zip:#{zip_code}"
-    end
   end
 end

@@ -2,6 +2,7 @@ module Weather
   class ForecastLookup
     # thirty minutes matches the assessment cache window for repeated searches
     CACHE_EXPIRATION = 30.minutes
+    CACHE_KEY_VERSION = "v1".freeze
 
     def self.call(location_query)
       new.call(location_query)
@@ -18,7 +19,7 @@ module Weather
       cache_key = cache_key_for(location_query)
 
       if cache_key.present?
-        cached_forecast = cached_forecast_for(cache_key)
+        cached_forecast = cache.read(cache_key)
         return mark_cached(cached_forecast) if cached_forecast
       end
 
@@ -36,16 +37,7 @@ module Weather
     def cache_key_for(location_query)
       return unless location_query.zip_code
 
-      "forecast:zip:#{location_query.zip_code}"
-    end
-
-    def cached_forecast_for(cache_key)
-      cache.read(cache_key)
-    rescue TypeError => error
-      raise unless error.message.include?("struct Weather::Forecast not compatible")
-
-      cache.delete(cache_key)
-      nil
+      "forecast:#{CACHE_KEY_VERSION}:zip:#{location_query.zip_code}"
     end
 
     # return a new forecast so the stored fresh value is not mutated after a cache hit
