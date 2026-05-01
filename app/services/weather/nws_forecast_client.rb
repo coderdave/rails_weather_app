@@ -48,7 +48,7 @@ module Weather
       low_period = periods.find { |period| period["isDaytime"] == false } || current_period
 
       NwsForecastResult.new(
-        # nws forecast periods are not current observations, so use the first period as the current app value for now
+        # the first period is the nearest forecast period for the requested endpoint
         current_temperature: temperature_for(current_period),
         high_temperature: temperature_for(high_period),
         low_temperature: temperature_for(low_period),

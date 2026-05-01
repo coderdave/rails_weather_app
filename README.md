@@ -7,7 +7,7 @@ Rails Weather App is a small Rails application for looking up US weather forecas
 ## Features
 
 - Search by street address, city/state, or ZIP code
-- Current forecast period temperature, daily high/low, and conditions
+- Current hourly forecast temperature and conditions, plus daily high/low
 - 30-minute forecast caching for submitted ZIP-code searches
 - Visible cache-hit indicator when a forecast is served from cache
 - User-friendly validation and external-service error handling
@@ -103,8 +103,8 @@ User input
   -> ForecastLookup checks the submitted ZIP cache key, when present
   -> LocationResolver geocodes the search into coordinates
   -> ForecastClient coordinates the NWS clients
-  -> NwsPointsClient resolves coordinates to an NWS forecast URL
-  -> NwsForecastClient parses forecast periods
+  -> NwsPointsClient resolves coordinates to NWS daily and hourly forecast URLs
+  -> NwsForecastClient parses daily and hourly forecast periods
   -> Forecast is rendered by ForecastsController
 ```
 

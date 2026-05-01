@@ -11,14 +11,15 @@ module Weather
 
     def call(resolved_location)
       points_result = nws_points_client.call(resolved_location)
-      forecast_result = nws_forecast_client.call(points_result.forecast_url)
+      daily_forecast = nws_forecast_client.call(points_result.forecast_url)
+      hourly_forecast = nws_forecast_client.call(points_result.forecast_hourly_url)
 
       Forecast.new(
         location: resolved_location.display_name,
-        current_temperature: forecast_result.current_temperature,
-        high_temperature: forecast_result.high_temperature,
-        low_temperature: forecast_result.low_temperature,
-        conditions: forecast_result.conditions,
+        current_temperature: hourly_forecast.current_temperature,
+        high_temperature: daily_forecast.high_temperature,
+        low_temperature: daily_forecast.low_temperature,
+        conditions: hourly_forecast.conditions,
         cached: false
       )
     end

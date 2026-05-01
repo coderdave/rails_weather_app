@@ -10,6 +10,7 @@ RSpec.describe Weather::NwsPointsClient do
       points_result = described_class.new(http_client: http_client).call(resolved_location)
 
       expect(points_result.forecast_url).to eq("https://api.weather.gov/gridpoints/MTR/85,105/forecast")
+      expect(points_result.forecast_hourly_url).to eq("https://api.weather.gov/gridpoints/MTR/85,105/forecast/hourly")
       expect(points_result.city).to eq("Cupertino")
       expect(points_result.state).to eq("CA")
       expect(points_result.time_zone).to eq("America/Los_Angeles")
@@ -75,6 +76,7 @@ RSpec.describe Weather::NwsPointsClient do
       {
         "properties" => {
           "forecast" => "https://api.weather.gov/gridpoints/MTR/85,105/forecast",
+          "forecastHourly" => "https://api.weather.gov/gridpoints/MTR/85,105/forecast/hourly",
           "timeZone" => "America/Los_Angeles",
           "relativeLocation" => {
             "properties" => {

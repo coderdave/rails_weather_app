@@ -11,21 +11,35 @@ RSpec.describe Weather::ForecastClient do
     end
     let(:points_result) do
       Weather::NwsPointsResult.new(
-        forecast_url: "https://api.weather.gov/gridpoints/MTR/85,105/forecast"
+        forecast_url: "https://api.weather.gov/gridpoints/MTR/85,105/forecast",
+        forecast_hourly_url: "https://api.weather.gov/gridpoints/MTR/85,105/forecast/hourly"
       )
     end
-    let(:forecast_result) do
+    let(:daily_forecast_result) do
       Weather::NwsForecastResult.new(
-        current_temperature: 72,
+        current_temperature: 71,
         high_temperature: 78,
         low_temperature: 63,
+        conditions: "Sunny"
+      )
+    end
+    let(:hourly_forecast_result) do
+      Weather::NwsForecastResult.new(
+        current_temperature: 72,
+        high_temperature: 72,
+        low_temperature: 70,
         conditions: "Partly Cloudy"
       )
     end
     let(:nws_points_client) { class_double(Weather::NwsPointsClient, call: points_result) }
-    let(:nws_forecast_client) { class_double(Weather::NwsForecastClient, call: forecast_result) }
+    let(:nws_forecast_client) do
+      class_double(Weather::NwsForecastClient).tap do |client|
+        allow(client).to receive(:call).with(points_result.forecast_url).and_return(daily_forecast_result)
+        allow(client).to receive(:call).with(points_result.forecast_hourly_url).and_return(hourly_forecast_result)
+      end
+    end
 
-    it "returns a forecast from the nws forecast result" do
+    it "returns current values from the hourly forecast and high/low from the daily forecast" do
       forecast = described_class.new(
         nws_points_client: nws_points_client,
         nws_forecast_client: nws_forecast_client
@@ -48,7 +62,7 @@ RSpec.describe Weather::ForecastClient do
       expect(nws_points_client).to have_received(:call).with(resolved_location)
     end
 
-    it "calls the nws forecast client with the returned forecast url" do
+    it "calls the nws forecast client with the daily and hourly forecast urls" do
       described_class.new(
         nws_points_client: nws_points_client,
         nws_forecast_client: nws_forecast_client
@@ -56,6 +70,9 @@ RSpec.describe Weather::ForecastClient do
 
       expect(nws_forecast_client).to have_received(:call).with(
         "https://api.weather.gov/gridpoints/MTR/85,105/forecast"
+      )
+      expect(nws_forecast_client).to have_received(:call).with(
+        "https://api.weather.gov/gridpoints/MTR/85,105/forecast/hourly"
       )
     end
 

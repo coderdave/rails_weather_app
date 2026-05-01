@@ -55,6 +55,7 @@ module Weather
 
       NwsPointsResult.new(
         forecast_url: properties.fetch("forecast"),
+        forecast_hourly_url: properties.fetch("forecastHourly"),
         city: relative_location.fetch("city"),
         state: relative_location.fetch("state"),
         time_zone: properties.fetch("timeZone")
