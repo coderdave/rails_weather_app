@@ -85,6 +85,17 @@ config.cache_store = :null_store
 
 Restore the checked-in `:memory_store` settings when you want local cache-hit behavior again.
 
+## Request Flow
+
+1. The user submits the search form to `ForecastsController#index`.
+2. The controller builds `Weather::LocationQuery.new(params[:location])` to normalize and validate the input.
+3. Valid input is passed to `Weather::ForecastLookup.call(location_query)`.
+4. If the submitted query contains a ZIP code, `ForecastLookup#call` checks `forecast:v1:zip:<zip_code>` before geocoding or calling NWS.
+5. On a cache miss, `Weather::LocationResolver.call` uses `Weather::GeocodingClient#call` to resolve the submitted location through Nominatim.
+6. `Weather::ForecastClient#call` sends the resolved coordinates to `Weather::NwsPointsClient#call` to find the NWS daily and hourly forecast URLs.
+7. `Weather::NwsForecastClient#call` parses the hourly forecast for current temperature and conditions, then parses the daily forecast for high, low, and extended periods.
+8. `ForecastLookup#call` writes ZIP-code lookups to the cache for 30 minutes, and the controller renders the `Weather::Forecast` in `app/views/forecasts/index.html.erb`.
+
 ## External Services
 
 The app uses two public services:
