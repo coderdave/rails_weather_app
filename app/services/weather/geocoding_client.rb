@@ -162,10 +162,17 @@ module Weather
       address = result.fetch("address", {})
       zip_code = zip_code_from(result)
 
-      display_name_from_query(location_query, address, zip_code) ||
+      if street_address_query?(location_query)
         display_name_from_address(address, zip_code) ||
-        display_name_from_state_and_zip(address, zip_code) ||
-        result.fetch("display_name")
+          display_name_from_query(location_query, address, zip_code) ||
+          display_name_from_state_and_zip(address, zip_code) ||
+          result.fetch("display_name")
+      else
+        display_name_from_query(location_query, address, zip_code) ||
+          display_name_from_address(address, zip_code) ||
+          display_name_from_state_and_zip(address, zip_code) ||
+          result.fetch("display_name")
+      end
     end
 
     def display_name_from_address(address, zip_code)
@@ -195,7 +202,9 @@ module Weather
     end
 
     def locality_from(address)
-      address.values_at("city", "town", "village", "hamlet", "municipality", "suburb", "residential").find(&:present?)
+      address.values_at("city", "town", "village", "hamlet", "municipality", "suburb", "residential").find do |locality|
+        locality.present? && !locality.to_s.match?(LocationQuery::ZIP_CODE_PATTERN)
+      end
     end
 
     def street_address_from(address)
@@ -207,20 +216,41 @@ module Weather
     def display_name_with_zip(parts, zip_code)
       display_name = parts.compact.join(", ")
       return display_name unless zip_code
+      return display_name if display_name.start_with?("#{zip_code},") || display_name.end_with?(" #{zip_code}")
 
       "#{display_name} #{zip_code}"
     end
 
     def query_locality_from(location_query)
       query = location_query.to_s.sub(/\s+\d{5}(?:-\d{4})?\z/, "")
-      tokens = query.split
-      return if street_suffix_index_for(tokens)
 
       city_state_match = query.match(CITY_STATE_QUERY_PATTERN)
       return city_state_match[:city] if city_state_match
 
+      street_address_locality = street_address_locality_from(query)
+      return street_address_locality if street_address_locality
+
+      tokens = query.split
       locality = tokens.join(" ").sub(/\b[A-Za-z]{2}\z/, "").delete_suffix(",").strip
       locality if locality.present?
+    end
+
+    def street_address_query?(location_query)
+      street_suffix_index_for(address_tokens(location_query)).present?
+    end
+
+    def street_address_locality_from(query)
+      tokens = query.split
+      state = tokens.pop.to_s.delete(",")
+      return unless state.match?(/\A[A-Za-z]{2}\z/)
+
+      street_suffix_index = street_suffix_index_for(tokens)
+      return unless street_suffix_index
+
+      city_tokens = tokens[(street_suffix_index + 1)..]
+      return if city_tokens.blank?
+
+      city_tokens.join(" ").delete_suffix(",").strip.presence
     end
 
     def latitude_from(result)

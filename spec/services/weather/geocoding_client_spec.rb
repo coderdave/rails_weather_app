@@ -137,6 +137,16 @@ RSpec.describe Weather::GeocodingClient do
       expect(geocoding_result.zip_code).to eq("32771")
     end
 
+    it "uses the submitted city when the geocoder returns the zip code as the locality" do
+      response = instance_double(Net::HTTPResponse, code: "200", body: zip_locality_response_body)
+      http_client = class_double(Net::HTTP, get_response: response)
+
+      geocoding_result = described_class.new(http_client: http_client).call("6068 Saint Julian Dr. Sanford FL 32771")
+
+      expect(geocoding_result.display_name).to eq("Sanford, Florida 32771")
+      expect(geocoding_result.zip_code).to eq("32771")
+    end
+
     it "raises a location not found error when geocoding returns no matches" do
       response = instance_double(Net::HTTPResponse, code: "200", body: [].to_json)
       http_client = class_double(Net::HTTP, get_response: response)
@@ -262,6 +272,21 @@ RSpec.describe Weather::GeocodingClient do
             "house_number" => "2502",
             "road" => "West 1st Street",
             "city" => "Sanford",
+            "state" => "Florida",
+            "postcode" => "32771"
+          }
+        }
+      ].to_json
+    end
+
+    def zip_locality_response_body
+      [
+        {
+          "display_name" => "32771, Seminole County, Florida, United States",
+          "lat" => "28.8117247",
+          "lon" => "-81.2949820",
+          "address" => {
+            "city" => "32771",
             "state" => "Florida",
             "postcode" => "32771"
           }

@@ -98,12 +98,12 @@ RSpec.describe "Forecast search", type: :request do
       get root_path, params: { location: "95014" }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).not_to include("Loaded from cache")
+      expect(response.body).not_to include("(cached result)")
 
       get root_path, params: { location: "95014" }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("Loaded from cache")
+      expect(response.body).to include("(cached result)")
       expect(Weather::LocationResolver).to have_received(:call).once
       expect(Weather::ForecastClient).to have_received(:call).once
     end
@@ -112,12 +112,12 @@ RSpec.describe "Forecast search", type: :request do
       get root_path, params: { location: "Cupertino" }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).not_to include("Loaded from cache")
+      expect(response.body).not_to include("(cached result)")
 
       get root_path, params: { location: "Cupertino" }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).not_to include("Loaded from cache")
+      expect(response.body).not_to include("(cached result)")
       expect(Weather::ForecastClient).to have_received(:call).twice
     end
 
