@@ -4,6 +4,7 @@ require "net/http"
 module Weather
   class NwsForecastClient
     # nws forecast urls come from the points endpoint, so this client follows that api-provided link
+    EXTENDED_PERIOD_LIMIT = 4
     REQUEST_HEADERS = {
       "Accept" => "application/geo+json",
       "User-Agent" => "rails-weather-app coding-assessment"
@@ -52,7 +53,8 @@ module Weather
         current_temperature: temperature_for(current_period),
         high_temperature: temperature_for(high_period),
         low_temperature: temperature_for(low_period),
-        conditions: current_period.fetch("shortForecast")
+        conditions: current_period.fetch("shortForecast"),
+        extended_periods: extended_periods_from(periods)
       )
     rescue JSON::ParserError, KeyError, TypeError, ArgumentError, NoMethodError
       raise Error, "nws forecast response could not be parsed"
@@ -60,6 +62,16 @@ module Weather
 
     def temperature_for(period)
       Integer(period.fetch("temperature"))
+    end
+
+    def extended_periods_from(periods)
+      periods.drop(1).first(EXTENDED_PERIOD_LIMIT).map do |period|
+        ForecastPeriod.new(
+          name: period.fetch("name"),
+          temperature: temperature_for(period),
+          conditions: period.fetch("shortForecast")
+        )
+      end
     end
   end
 end

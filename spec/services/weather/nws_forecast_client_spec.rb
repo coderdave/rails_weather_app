@@ -13,6 +13,13 @@ RSpec.describe Weather::NwsForecastClient do
       expect(forecast_result.high_temperature).to eq(72)
       expect(forecast_result.low_temperature).to eq(58)
       expect(forecast_result.conditions).to eq("Partly Cloudy")
+      expect(forecast_result.extended_periods.map(&:name)).to eq(
+        [ "Tonight", "Tomorrow", "Tomorrow Night", "Sunday" ]
+      )
+      expect(forecast_result.extended_periods.first).to have_attributes(
+        temperature: 58,
+        conditions: "Mostly Clear"
+      )
       expect(http_client).to have_received(:get_response) do |uri, headers|
         expect(uri.to_s).to eq(forecast_url)
         expect(headers["Accept"]).to eq("application/geo+json")
@@ -77,6 +84,24 @@ RSpec.describe Weather::NwsForecastClient do
               "isDaytime" => true,
               "temperature" => 76,
               "shortForecast" => "Sunny"
+            },
+            {
+              "name" => "Tomorrow Night",
+              "isDaytime" => false,
+              "temperature" => 60,
+              "shortForecast" => "Mostly Clear"
+            },
+            {
+              "name" => "Sunday",
+              "isDaytime" => true,
+              "temperature" => 77,
+              "shortForecast" => "Sunny"
+            },
+            {
+              "name" => "Sunday Night",
+              "isDaytime" => false,
+              "temperature" => 61,
+              "shortForecast" => "Clear"
             }
           ]
         }

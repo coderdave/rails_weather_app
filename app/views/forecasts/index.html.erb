@@ -53,6 +53,23 @@
           </div>
         </dl>
 
+        <% if @forecast.extended_periods.any? %>
+          <section class="extended-forecast" aria-labelledby="extended-forecast-title">
+            <h3 id="extended-forecast-title">Extended Forecast</h3>
+
+            <ul class="extended-forecast-list">
+              <% @forecast.extended_periods.each do |period| %>
+                <li>
+                  <p class="extended-forecast-name"><%= period.name %></p>
+                  <p class="extended-forecast-details">
+                    <%= period.conditions %>, <%= period.temperature %>&deg;F
+                  </p>
+                </li>
+              <% end %>
+            </ul>
+          </section>
+        <% end %>
+
         <% if @forecast.cached? %>
           <p class="cache-status">(cached result)</p>
         <% end %>

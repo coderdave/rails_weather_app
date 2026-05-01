@@ -26,6 +26,10 @@ RSpec.describe "Forecast search", type: :request do
           high_temperature: 78,
           low_temperature: 63,
           conditions: "Partly cloudy",
+          extended_periods: [
+            Weather::ForecastPeriod.new(name: "Tonight", temperature: 58, conditions: "Mostly Clear"),
+            Weather::ForecastPeriod.new(name: "Tomorrow", temperature: 76, conditions: "Sunny")
+          ],
           cached: false
         )
       end
@@ -76,6 +80,11 @@ RSpec.describe "Forecast search", type: :request do
       expect(response.body).to include("78&deg;F")
       expect(response.body).to include("63&deg;F")
       expect(response.body).to include("Partly cloudy")
+      expect(response.body).to include("Extended Forecast")
+      expect(response.body).to include("Tonight")
+      expect(response.body).to include("Mostly Clear, 58&deg;F")
+      expect(response.body).to include("Tomorrow")
+      expect(response.body).to include("Sunny, 76&deg;F")
     end
 
     it "lets the api try a simple location name" do

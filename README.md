@@ -8,6 +8,7 @@ Rails Weather App is a small Rails application for looking up US weather forecas
 
 - Search by street address, city/state, or ZIP code
 - Current hourly forecast temperature and conditions, plus daily high/low
+- Extended forecast for the next four NWS forecast periods
 - 30-minute forecast caching for submitted ZIP-code searches
 - Visible cache-hit indicator when a forecast is served from cache
 - User-friendly validation and external-service error handling
@@ -118,6 +119,7 @@ Primary objects:
 - `Weather::NwsPointsClient` fetches NWS metadata for resolved coordinates.
 - `Weather::NwsForecastClient` fetches and parses forecast periods.
 - `Weather::Forecast` is the final value object rendered by the UI.
+- `Weather::ForecastPeriod` represents one item in the extended forecast.
 
 ## Project Structure
 
@@ -129,6 +131,7 @@ app/
     forecast_search_controller.js
   services/weather/
     forecast_lookup.rb
+    forecast_period.rb
     location_query.rb
     location_resolver.rb
     geocoding_client.rb

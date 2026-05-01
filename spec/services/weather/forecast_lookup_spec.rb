@@ -87,6 +87,29 @@ RSpec.describe Weather::ForecastLookup do
       expect(cache.read("forecast:zip:95014").location).to eq("Resolved Cupertino")
     end
 
+    it "deletes incompatible cached forecasts and fetches a fresh forecast" do
+      cache = instance_spy(ActiveSupport::Cache::MemoryStore)
+
+      allow(cache).to receive(:read)
+        .with("forecast:zip:95014")
+        .and_raise(TypeError, "struct Weather::Forecast not compatible (struct size differs)")
+
+      forecast = described_class.new(
+        cache: cache,
+        location_resolver: location_resolver,
+        forecast_client: forecast_client
+      ).call("95014")
+
+      expect(forecast).not_to be_cached
+      expect(forecast.location).to eq("Resolved Cupertino")
+      expect(cache).to have_received(:delete).with("forecast:zip:95014")
+      expect(cache).to have_received(:write).with(
+        "forecast:zip:95014",
+        fresh_forecast,
+        expires_in: described_class::CACHE_EXPIRATION
+      )
+    end
+
     it "does not cache lookups when the submitted query does not include a zip code" do
       resolved_location = Weather::ResolvedLocation.new(
         display_name: "Resolved Cupertino",

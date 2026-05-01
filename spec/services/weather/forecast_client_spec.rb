@@ -20,7 +20,10 @@ RSpec.describe Weather::ForecastClient do
         current_temperature: 71,
         high_temperature: 78,
         low_temperature: 63,
-        conditions: "Sunny"
+        conditions: "Sunny",
+        extended_periods: [
+          Weather::ForecastPeriod.new(name: "Tonight", temperature: 63, conditions: "Mostly Clear")
+        ]
       )
     end
     let(:hourly_forecast_result) do
@@ -50,6 +53,7 @@ RSpec.describe Weather::ForecastClient do
       expect(forecast.high_temperature).to eq(78)
       expect(forecast.low_temperature).to eq(63)
       expect(forecast.conditions).to eq("Partly Cloudy")
+      expect(forecast.extended_periods.map(&:name)).to eq([ "Tonight" ])
       expect(forecast).not_to be_cached
     end
 

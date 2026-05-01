@@ -20,6 +20,7 @@ module Weather
         high_temperature: daily_forecast.high_temperature,
         low_temperature: daily_forecast.low_temperature,
         conditions: hourly_forecast.conditions,
+        extended_periods: daily_forecast.extended_periods,
         cached: false
       )
     end
